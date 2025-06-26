@@ -1,13 +1,15 @@
 const axios = require("axios");
 
 const AI_CONFIG = {
-    baseURL: "http://165.232.134.134:8000/v1/completions",
+    baseURL:
+        process.env.AI_SERVICE_URL ||
+        "",
     headers: {
         "Content-Type": "application/json",
     },
     defaultParams: {
-        temperature: 0.7,
-        max_tokens: 512,
+        temperature: parseFloat(process.env.AI_TEMPERATURE) || 0.7,
+        max_tokens: parseInt(process.env.AI_MAX_TOKENS) || 512,
     },
 };
 
@@ -37,4 +39,5 @@ const queryAI = async (prompt) => {
 module.exports = {
     queryAI,
     generatePrompt,
+    AI_CONFIG, // Export for debugging
 };

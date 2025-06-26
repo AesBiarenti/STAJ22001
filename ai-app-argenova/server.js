@@ -1,3 +1,6 @@
+// Load environment variables first
+require("dotenv").config();
+
 const express = require("express");
 const cors = require("cors");
 const bodyParser = require("body-parser");
@@ -47,6 +50,7 @@ app.listen(PORT, () => {
     console.log(`🚀 Sunucu http://localhost:${PORT} adresinde çalışıyor`);
     console.log(`📊 API endpoint'leri: http://localhost:${PORT}/api`);
     console.log(`🌐 Web arayüzü: http://localhost:${PORT}`);
+    console.log(`🔧 Environment: ${process.env.NODE_ENV || "development"}`);
 });
 
 // Graceful shutdown
