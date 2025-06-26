@@ -82,16 +82,16 @@ GET /api/history?limit=10&page=1
 
 ##  Özellikler
 
--   ✅ MVC mimarisi
--   ✅ Hata yönetimi
--   ✅ İstek loglama
--   ✅ Pagination desteği
--   ✅ Graceful shutdown
--   ✅ Environment variable desteği
--   ✅ Input validation
--   ✅ Error handling middleware
--   ✅ Modern responsive UI
--   ✅ AI service configuration
+-  MVC mimarisi
+-  Hata yönetimi
+-  İstek loglama
+-  Pagination desteği
+-  Graceful shutdown
+-  Environment variable desteği
+-  Input validation
+-  Error handling middleware
+-  Modern responsive UI
+-  AI service configuration
 
 ## Teknolojiler
 
