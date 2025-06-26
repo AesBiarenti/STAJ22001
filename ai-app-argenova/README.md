@@ -2,7 +2,7 @@
 
 Bu proje, haftalık çalışma verilerini analiz eden bir AI asistan uygulamasıdır.
 
-## 🏗️ Proje Mimarisi
+## Proje Mimarisi
 
 Proje MVC (Model-View-Controller) mimarisine uygun olarak düzenlenmiştir:
 
@@ -29,7 +29,7 @@ ai-app-argenova/
 
 ```
 
-## 🚀 Kurulum ve Çalıştırma
+## Kurulum ve Çalıştırma
 
 1. Bağımlılıkları yükleyin:
 
@@ -58,7 +58,7 @@ npm start
 npm run dev
 ```
 
-## 📊 API Endpoint'leri
+## API Endpoint'leri
 
 ### POST /api/query
 
