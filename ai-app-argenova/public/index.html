@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Asistanı - Haftalık Çalışma Analizi</title>
+    <link rel="stylesheet" href="style.css">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div class="app-container">
+        <header class="header">
+            <div class="header-content">
+                <div class="logo">
+                    <i class="fas fa-robot"></i>
+                    <h1>AI Asistanı</h1>
+                </div>
+                <p class="subtitle">Haftalık Çalışma Verilerini Analiz Edin</p>
+            </div>
+        </header>
+
+        <main class="main-content">
+            <div class="left-panel">
+                <div class="form-card">
+                    <div class="card-header">
+                        <h2><i class="fas fa-edit"></i> Yeni Sorgu</h2>
+                        <p>Haftalık çalışma verilerinizi girin ve AI analizi alın</p>
+                    </div>
+                    
+                    <form id="queryForm" class="query-form">
+                        <div class="form-group">
+                            <label for="prompt">
+                                <i class="fas fa-calendar-week"></i>
+                                Haftalık Çalışma Verileri
+                            </label>
+                            <textarea 
+                                id="prompt" 
+                                name="prompt"
+                                rows="8" 
+                                placeholder="Örnek:&#10;Pazartesi: 08:30-17:00&#10;Salı: 09:00-17:30&#10;Çarşamba: 08:45-16:45&#10;Perşembe: 09:15-17:15&#10;Cuma: 08:00-16:30&#10;Cumartesi: 10:00-14:00&#10;Pazar: Tatil"
+                                required
+                            ></textarea>
+                        </div>
+                        
+                        <button type="submit" id="submitBtn" class="submit-btn">
+                            <i class="fas fa-paper-plane"></i>
+                            <span>Analiz Et</span>
+                        </button>
+                    </form>
+
+                    <div id="responseContainer" class="response-container" style="display: none;">
+                        <div class="response-header">
+                            <h3><i class="fas fa-brain"></i> AI Analizi</h3>
+                            <div class="response-meta">
+                                <span id="responseTime" class="time-badge"></span>
+                            </div>
+                        </div>
+                        <div id="response" class="response-content"></div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="right-panel">
+                <div class="history-card">
+                    <div class="card-header">
+                        <h2><i class="fas fa-history"></i> Geçmiş Sorgular</h2>
+                        <button id="refreshHistory" class="refresh-btn" title="Yenile">
+                            <i class="fas fa-sync-alt"></i>
+                        </button>
+                    </div>
+                    
+                    <div id="history" class="history-list">
+                        <div class="loading">
+                            <i class="fas fa-spinner fa-spin"></i>
+                            <span>Geçmiş yükleniyor...</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+    
+    <div id="loadingOverlay" class="loading-overlay" style="display: none;">
+        <div class="loading-content">
+            <div class="spinner"></div>
+            <p>AI analizi yapılıyor...</p>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
