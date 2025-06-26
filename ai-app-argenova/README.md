@@ -26,7 +26,7 @@ ai-app-argenova/
 │   └── script.js
 ├── server.js         # Ana sunucu dosyası
 ├── package.json
-└── .env.example      # Environment variables örneği
+
 ```
 
 ## 🚀 Kurulum ve Çalıştırma
