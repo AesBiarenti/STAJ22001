@@ -40,24 +40,11 @@ npm install
 2. Environment variables dosyasını oluşturun:
 
 ```bash
-cp .env.example .env
+cp .env
 ```
 
 3. `.env` dosyasını düzenleyin:
 
-```env
-# AI Service Configuration
-AI_SERVICE_URL=http://165.232.134.134:8000/v1/completions
-AI_TEMPERATURE=0.7
-AI_MAX_TOKENS=512
-
-# Server Configuration
-PORT=3000
-NODE_ENV=development
-
-# Database Configuration
-MONGODB_URI=mongodb://localhost:27017/ai_logs
-```
 
 4. MongoDB'nin çalıştığından emin olun
 
@@ -91,18 +78,9 @@ Geçmiş sorguları getirme
 GET /api/history?limit=10&page=1
 ```
 
-## 🔧 Environment Variables
 
-| Variable         | Açıklama                | Varsayılan                                   |
-| ---------------- | ----------------------- | -------------------------------------------- |
-| `AI_SERVICE_URL` | AI servis URL'si        | `http://165.232.134.134:8000/v1/completions` |
-| `AI_TEMPERATURE` | AI yanıt sıcaklığı      | `0.7`                                        |
-| `AI_MAX_TOKENS`  | Maksimum token sayısı   | `512`                                        |
-| `PORT`           | Sunucu portu            | `3000`                                       |
-| `NODE_ENV`       | Çalışma ortamı          | `development`                                |
-| `MONGODB_URI`    | MongoDB bağlantı URL'si | `mongodb://localhost:27017/ai_logs`          |
 
-## 🔧 Özellikler
+##  Özellikler
 
 -   ✅ MVC mimarisi
 -   ✅ Hata yönetimi
@@ -115,7 +93,7 @@ GET /api/history?limit=10&page=1
 -   ✅ Modern responsive UI
 -   ✅ AI service configuration
 
-## 🛠️ Teknolojiler
+## Teknolojiler
 
 -   **Backend**: Node.js, Express.js
 -   **Veritabanı**: MongoDB, Mongoose
@@ -123,7 +101,7 @@ GET /api/history?limit=10&page=1
 -   **Frontend**: HTML, CSS, JavaScript
 -   **Environment**: dotenv
 
-## 📝 Geliştirme
+## Geliştirme
 
 Proje modüler yapıda tasarlanmıştır. Yeni özellikler eklemek için:
 
@@ -132,7 +110,7 @@ Proje modüler yapıda tasarlanmıştır. Yeni özellikler eklemek için:
 3. Route tanımlayın (`routes/`)
 4. Gerekirse middleware ekleyin (`middleware/`)
 
-## 🔒 Güvenlik
+## Güvenlik
 
 -   Environment variables kullanarak hassas bilgileri koruyun
 -   Production ortamında güvenli MongoDB URI kullanın
