@@ -1,7 +1,7 @@
 {
     "name": "ai-app-argenova",
     "version": "1.0.0",
-    "description": "AI-powered weekly work analysis application",
+    "description": "AI-powered weekly work analysis application with vector database",
     "license": "ISC",
     "author": "",
     "type": "commonjs",
@@ -18,7 +18,8 @@
         "dotenv": "^16.3.1",
         "express": "^5.1.0",
         "mongoose": "^8.16.0",
-        "node-fetch": "^3.3.2"
+        "node-fetch": "^3.3.2",
+        "openai": "^4.20.1"
     },
     "devDependencies": {
         "nodemon": "^3.0.1"

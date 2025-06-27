@@ -8,10 +8,15 @@ const responseTime = document.getElementById("responseTime");
 const historyContainer = document.getElementById("history");
 const refreshHistoryBtn = document.getElementById("refreshHistory");
 const loadingOverlay = document.getElementById("loadingOverlay");
+const vectorList = document.getElementById('vectorList');
+const refreshVectorsBtn = document.getElementById('refreshVectors');
+const clearVectorsBtn = document.getElementById('clearVectors');
 
 // Event Listeners
 queryForm.addEventListener("submit", handleSubmit);
 refreshHistoryBtn.addEventListener("click", loadHistory);
+if (refreshVectorsBtn) refreshVectorsBtn.addEventListener('click', loadVectors);
+if (clearVectorsBtn) clearVectorsBtn.addEventListener('click', clearVectors);
 
 // Form submission handler
 async function handleSubmit(e) {
@@ -194,6 +199,7 @@ function formatDate(dateString) {
 
 function initApp() {
     loadHistory();
+    loadVectors();
 
     promptInput.addEventListener("input", function () {
         this.style.height = "auto";
@@ -215,3 +221,41 @@ Pazar: Tatil`;
 }
 
 document.addEventListener("DOMContentLoaded", initApp);
+
+async function loadVectors() {
+    try {
+        vectorList.innerHTML = `<div class="loading"><i class="fas fa-spinner fa-spin"></i> <span>Vektörler yükleniyor...</span></div>`;
+        const res = await fetch('/api/vectors/list');
+        if (!res.ok) throw new Error('Vektörler yüklenemedi');
+        const data = await res.json();
+        if (!data.vectors || data.vectors.length === 0) {
+            vectorList.innerHTML = `<div class="loading"><i class="fas fa-inbox"></i> <span>Vektör bulunamadı</span></div>`;
+            return;
+        }
+        vectorList.innerHTML = data.vectors.map((v, i) => `
+            <div class="vector-item">
+                <div class="vector-meta">
+                    <b>#${i + 1}</b> | <span><i class="fas fa-clock"></i> ${v.payload?.timestamp ? new Date(v.payload.timestamp).toLocaleString() : '-'}</span>
+                </div>
+                <div class="vector-payload">
+                    <b>Soru:</b> ${v.payload?.prompt || '-'}<br>
+                    <b>Cevap:</b> ${v.payload?.response || '-'}
+                </div>
+            </div>
+        `).join('');
+    } catch (error) {
+        vectorList.innerHTML = `<div class="loading"><i class="fas fa-exclamation-triangle"></i> <span>Vektörler yüklenemedi: ${error.message}</span></div>`;
+    }
+}
+
+async function clearVectors() {
+    if (!confirm('Tüm vektör veritabanı temizlensin mi?')) return;
+    vectorList.innerHTML = `<div class="loading"><i class="fas fa-spinner fa-spin"></i> <span>Temizleniyor...</span></div>`;
+    try {
+        const res = await fetch('/api/vectors/clear', { method: 'DELETE' });
+        if (!res.ok) throw new Error('Temizleme başarısız');
+        await loadVectors();
+    } catch (error) {
+        vectorList.innerHTML = `<div class="loading"><i class="fas fa-exclamation-triangle"></i> <span>Temizleme hatası: ${error.message}</span></div>`;
+    }
+}

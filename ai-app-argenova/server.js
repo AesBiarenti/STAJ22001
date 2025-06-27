@@ -1,20 +1,37 @@
-require("dotenv").config();
+const path = require("path");
+require("dotenv").config({ path: path.join(__dirname, ".env") });
 
 const express = require("express");
 const cors = require("cors");
 const bodyParser = require("body-parser");
-const path = require("path");
 
 const connectDB = require("./config/database");
 const errorHandler = require("./middleware/errorHandler");
 const requestLogger = require("./middleware/requestLogger");
+const QdrantClient = require("./config/qdrant");
 
 const aiRoutes = require("./routes/aiRoutes");
 
 const app = express();
 const PORT = process.env.PORT || 3000;
 
+// Qdrant client'ı başlat
+const qdrant = new QdrantClient();
+
+// Veritabanı bağlantısı
 connectDB();
+
+// Qdrant koleksiyonunu oluştur
+const initializeQdrant = async () => {
+    try {
+        await qdrant.createCollection();
+        console.log("🔍 Qdrant vektör veritabanı hazır");
+    } catch (error) {
+        console.error("❌ Qdrant başlatılamadı:", error.message);
+    }
+};
+
+initializeQdrant();
 
 app.use(cors());
 app.use(bodyParser.json());
