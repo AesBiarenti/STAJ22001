@@ -7,7 +7,7 @@ const AI_CONFIG = {
         temperature: parseFloat(process.env.AI_TEMPERATURE) || 0.7,
         max_tokens: parseInt(process.env.AI_MAX_TOKENS) || 256,
     },
-    useLocalFallback: false, // Yerel fallback kapalı
+    useLocalFallback: false,
 };
 
 const generatePrompt = (userPrompt) => {
@@ -51,7 +51,6 @@ const queryAI = async (prompt) => {
     } catch (error) {
         console.error("❌ Ollama API hatası:", error.message);
 
-        // Hata durumunda uygun mesaj döndür
         if (error.code === "ECONNREFUSED") {
             throw new Error(
                 "Ollama servisi çalışmıyor. Lütfen 'ollama serve' komutunu çalıştırın."

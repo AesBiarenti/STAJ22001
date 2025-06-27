@@ -6,7 +6,7 @@ const EmbeddingService = require("../config/embedding");
 const qdrant = new QdrantClient();
 let embeddingService = null;
 
-// Lazy loading için embedding service'i oluştur
+
 const getEmbeddingService = () => {
     if (!embeddingService) {
         embeddingService = new EmbeddingService();
@@ -26,20 +26,20 @@ const processQuery = async (req, res) => {
     const start = Date.now();
 
     try {
-        // 1. Geçmiş benzer sorguları bul
+        
         const similarQueries = await findSimilarQueries(prompt);
 
-        // 2. Geliştirilmiş prompt oluştur
+        
         const enhancedPrompt = createEnhancedPrompt(prompt, similarQueries);
 
-        // 3. AI'dan yanıt al
+        
         const aiResponse = await queryAI(enhancedPrompt);
         const end = Date.now();
         const duration = (end - start) / 1000;
 
         const reply = aiResponse.choices?.[0]?.text || "Yanıt alınamadı.";
 
-        // 4. Log kaydını oluştur
+        
         const log = new Log({
             prompt: prompt.trim(),
             response: reply,
@@ -47,7 +47,7 @@ const processQuery = async (req, res) => {
         });
         await log.save();
 
-        // 5. Vektör veritabanına ekle
+        
         await addToVectorDatabase(log._id.toString(), prompt, reply);
 
         res.json({
@@ -69,16 +69,16 @@ const processQuery = async (req, res) => {
     }
 };
 
-// Benzer sorguları bul
+
 const findSimilarQueries = async (prompt) => {
     try {
-        // Prompt'u vektöre çevir
+        
         const embedding = await getEmbeddingService().getEmbedding(prompt);
 
-        // Benzer vektörleri ara
+        
         const similarVectors = await qdrant.searchSimilar(embedding, 3);
 
-        // Benzerlik skoru yüksek olanları filtrele
+        
         return similarVectors
             .filter((item) => item.score > 0.7)
             .map((item) => item.payload);
@@ -88,7 +88,7 @@ const findSimilarQueries = async (prompt) => {
     }
 };
 
-// Geliştirilmiş prompt oluştur
+
 const createEnhancedPrompt = (originalPrompt, similarQueries) => {
     if (similarQueries.length === 0) {
         return `Sen bir Türkçe asistanısın. Haftalık çalışma verilerini yorumla:\n${originalPrompt}`;
@@ -113,18 +113,18 @@ ${originalPrompt}
 Lütfen önceki örneklerdeki analiz kalitesini ve detay seviyesini koruyarak yanıt ver.`;
 };
 
-// Vektör veritabanına ekle
+
 const addToVectorDatabase = async (id, prompt, response) => {
     try {
-        // Prompt ve response'u birleştir
+        
         const combinedText = `${prompt}\n\n${response}`;
 
-        // Vektöre çevir
+        
         const embedding = await getEmbeddingService().getEmbedding(
             combinedText
         );
 
-        // Qdrant'a ekle
+        
         await qdrant.addVector(id, embedding, {
             prompt: prompt,
             response: response,
@@ -167,7 +167,7 @@ const getHistory = async (req, res) => {
     }
 };
 
-// Vektör veritabanını geçmiş verilerle doldur
+
 const populateVectorDatabase = async (req, res) => {
     try {
         const logs = await Log.find().sort({ createdAt: -1 }).limit(100);

@@ -1,4 +1,4 @@
-// DOM Elements
+
 const queryForm = document.getElementById("queryForm");
 const promptInput = document.getElementById("prompt");
 const submitBtn = document.getElementById("submitBtn");
@@ -12,13 +12,13 @@ const vectorList = document.getElementById('vectorList');
 const refreshVectorsBtn = document.getElementById('refreshVectors');
 const clearVectorsBtn = document.getElementById('clearVectors');
 
-// Event Listeners
+
 queryForm.addEventListener("submit", handleSubmit);
 refreshHistoryBtn.addEventListener("click", loadHistory);
 if (refreshVectorsBtn) refreshVectorsBtn.addEventListener('click', loadVectors);
 if (clearVectorsBtn) clearVectorsBtn.addEventListener('click', clearVectors);
 
-// Form submission handler
+
 async function handleSubmit(e) {
     e.preventDefault();
 
@@ -28,7 +28,7 @@ async function handleSubmit(e) {
         return;
     }
 
-    // Show loading state
+    
     setLoadingState(true);
     showLoadingOverlay();
 

@@ -12,7 +12,7 @@ router.get("/history", getHistory);
 
 router.post("/populate-vectors", populateVectorDatabase);
 
-// Vektör veritabanı durumu
+
 router.get("/vectors/status", async (req, res) => {
     try {
         const QdrantClient = require("../config/qdrant");
@@ -31,13 +31,13 @@ router.get("/vectors/status", async (req, res) => {
     }
 });
 
-// Vektör veritabanındaki tüm vektörleri listele
+
 router.get("/vectors/list", async (req, res) => {
     try {
         const QdrantClient = require("../config/qdrant");
         const qdrant = new QdrantClient();
 
-        // Boş bir vektör ile arama yaparak tüm vektörleri al
+        
         const emptyVector = new Array(1536).fill(0);
         const results = await qdrant.searchSimilar(emptyVector, 100);
 
@@ -54,7 +54,7 @@ router.get("/vectors/list", async (req, res) => {
     }
 });
 
-// Vektör veritabanını temizle
+
 router.delete("/vectors/clear", async (req, res) => {
     try {
         const QdrantClient = require("../config/qdrant");

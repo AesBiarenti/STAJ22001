@@ -4,25 +4,25 @@ class QdrantClient {
     constructor() {
         this.baseURL = process.env.QDRANT_URL || "http://localhost:6333";
         this.collectionName = process.env.QDRANT_COLLECTION || "ai_logs";
-        this.vectorSize = 1536; // OpenAI embedding boyutu
+        this.vectorSize = 1536; 
         this.client = axios.create({
             baseURL: this.baseURL,
             timeout: 10000,
         });
     }
 
-    // String ID'yi integer'a çevir
+   
     stringToId(str) {
         let hash = 0;
         for (let i = 0; i < str.length; i++) {
             const char = str.charCodeAt(i);
             hash = (hash << 5) - hash + char;
-            hash = hash & hash; // Convert to 32bit integer
+            hash = hash & hash; 
         }
         return Math.abs(hash);
     }
 
-    // Koleksiyon oluştur
+
     async createCollection() {
         try {
             const response = await this.client.put(
@@ -55,10 +55,10 @@ class QdrantClient {
         }
     }
 
-    // Vektör ekle
+ 
     async addVector(id, vector, payload) {
         try {
-            // String ID'yi integer'a çevir
+          
             const numericId = this.stringToId(id);
 
             await this.client.put(
@@ -83,7 +83,7 @@ class QdrantClient {
         }
     }
 
-    // Benzer vektörleri ara
+    
     async searchSimilar(vector, limit = 5) {
         try {
             const response = await this.client.post(
@@ -102,7 +102,7 @@ class QdrantClient {
         }
     }
 
-    // Koleksiyon durumunu kontrol et
+   
     async getCollectionInfo() {
         try {
             const response = await this.client.get(
@@ -115,7 +115,7 @@ class QdrantClient {
         }
     }
 
-    // Koleksiyonu temizle
+  
     async clearCollection() {
         try {
             await this.client.delete(

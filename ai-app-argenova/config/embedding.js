@@ -11,7 +11,7 @@ class EmbeddingService {
         console.log("💡 Bu sistem OpenAI API'sine ihtiyaç duymaz");
     }
 
-    // Metni vektöre çevir
+
     async getEmbedding(text) {
         try {
             const response = await axios.post(
@@ -24,19 +24,19 @@ class EmbeddingService {
                     headers: {
                         "Content-Type": "application/json",
                     },
-                    timeout: 10000, // 10 saniye timeout
+                    timeout: 10000, 
                 }
             );
 
             return response.data.embedding;
         } catch (error) {
             console.error("❌ MXBAI embedding hatası:", error.message);
-            // Fallback olarak hash-based embedding kullan
+           
             return this.createAdvancedEmbedding(text);
         }
     }
 
-    // Birden fazla metni vektöre çevir
+  
     async getEmbeddings(texts) {
         try {
             const embeddings = [];
@@ -51,33 +51,33 @@ class EmbeddingService {
         }
     }
 
-    // Gelişmiş hash-based embedding oluştur (fallback)
+ 
     createAdvancedEmbedding(text) {
         const vector = new Array(1536).fill(0);
         const words = text
             .toLowerCase()
-            .replace(/[^\w\s]/g, "") // Noktalama işaretlerini kaldır
+            .replace(/[^\w\s]/g, "") 
             .split(/\s+/)
-            .filter((word) => word.length > 2); // Kısa kelimeleri filtrele
+            .filter((word) => word.length > 2); 
 
-        // Kelime frekansını hesapla
+    
         const wordFreq = {};
         words.forEach((word) => {
             wordFreq[word] = (wordFreq[word] || 0) + 1;
         });
 
-        // Her kelimeyi vektöre ekle
+        
         Object.entries(wordFreq).forEach(([word, freq], index) => {
             const hash = this.advancedHash(word);
             const position = hash % 1536;
             const weight = freq / (index + 1);
 
-            // Pozitif ve negatif değerler ekle
+           
             vector[position] += weight;
-            vector[(position + 768) % 1536] -= weight * 0.5; // Karşıt pozisyon
+            vector[(position + 768) % 1536] -= weight * 0.5; 
         });
 
-        // Normalize
+   
         const magnitude = Math.sqrt(
             vector.reduce((sum, val) => sum + val * val, 0)
         );
@@ -89,20 +89,20 @@ class EmbeddingService {
         return vector;
     }
 
-    // Gelişmiş hash fonksiyonu
+  
     advancedHash(str) {
         let hash = 0;
         const prime = 31;
 
         for (let i = 0; i < str.length; i++) {
             const char = str.charCodeAt(i);
-            hash = (hash * prime + char) % 2147483647; // Büyük asal sayı
+            hash = (hash * prime + char) % 2147483647;
         }
 
         return Math.abs(hash);
     }
 
-    // Metin benzerlik skoru hesapla
+
     async calculateSimilarity(text1, text2) {
         try {
             const [embedding1, embedding2] = await this.getEmbeddings([
@@ -116,7 +116,6 @@ class EmbeddingService {
         }
     }
 
-    // Cosine similarity hesapla
     cosineSimilarity(vecA, vecB) {
         const dotProduct = vecA.reduce((sum, a, i) => sum + a * vecB[i], 0);
         const normA = Math.sqrt(vecA.reduce((sum, a) => sum + a * a, 0));
