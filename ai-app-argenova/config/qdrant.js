@@ -4,24 +4,22 @@ class QdrantClient {
     constructor() {
         this.baseURL = process.env.QDRANT_URL || "http://localhost:6333";
         this.collectionName = process.env.QDRANT_COLLECTION || "ai_logs";
-        this.vectorSize = 1536; 
+        this.vectorSize = 1024; // MXBAI embedding boyutu
         this.client = axios.create({
             baseURL: this.baseURL,
             timeout: 10000,
         });
     }
 
-   
     stringToId(str) {
         let hash = 0;
         for (let i = 0; i < str.length; i++) {
             const char = str.charCodeAt(i);
             hash = (hash << 5) - hash + char;
-            hash = hash & hash; 
+            hash = hash & hash;
         }
         return Math.abs(hash);
     }
-
 
     async createCollection() {
         try {
@@ -55,10 +53,8 @@ class QdrantClient {
         }
     }
 
- 
     async addVector(id, vector, payload) {
         try {
-          
             const numericId = this.stringToId(id);
 
             await this.client.put(
@@ -83,7 +79,6 @@ class QdrantClient {
         }
     }
 
-    
     async searchSimilar(vector, limit = 5) {
         try {
             const response = await this.client.post(
@@ -102,7 +97,6 @@ class QdrantClient {
         }
     }
 
-   
     async getCollectionInfo() {
         try {
             const response = await this.client.get(
@@ -115,7 +109,6 @@ class QdrantClient {
         }
     }
 
-  
     async clearCollection() {
         try {
             await this.client.delete(
@@ -131,6 +124,35 @@ class QdrantClient {
         } catch (error) {
             console.error("❌ Koleksiyon temizlenemedi:", error.message);
             return false;
+        }
+    }
+
+    async getAllVectors(limit = 100) {
+        try {
+            const response = await this.client.post(
+                `/collections/${this.collectionName}/points/scroll`,
+                {
+                    limit: limit,
+                    with_payload: true,
+                    with_vector: false,
+                    offset: 0,
+                }
+            );
+
+            if (
+                response.data &&
+                response.data.result &&
+                response.data.result.points
+            ) {
+                return response.data.result.points;
+            }
+            return [];
+        } catch (error) {
+            console.error("❌ Tüm vektörler alınamadı:", error.message);
+            if (error.response?.data) {
+                console.error("Qdrant hatası:", error.response.data);
+            }
+            return [];
         }
     }
 }

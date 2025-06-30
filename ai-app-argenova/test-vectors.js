@@ -1,50 +1,44 @@
 const QdrantClient = require("./config/qdrant");
 const EmbeddingService = require("./config/embedding");
 
-async function testVectorAddition() {
+(async () => {
     const qdrant = new QdrantClient();
     const embeddingService = new EmbeddingService();
 
-    console.log("🔍 Vektör ekleme testi başlıyor...");
-
-    try {
-        // Test metni
-        const testText = "Pazartesi: 08:30-17:00\nSalı: 09:00-17:30";
-
-        // Embedding oluştur
-        console.log("📝 Embedding oluşturuluyor...");
-        const embedding = await embeddingService.getEmbedding(testText);
-        console.log("✅ Embedding oluşturuldu, boyut:", embedding.length);
-
-        // Qdrant'a ekle
-        console.log("💾 Qdrant'a ekleniyor...");
-        const success = await qdrant.addVector("test-1", embedding, {
-            prompt: testText,
-            response: "Test yanıtı",
-            timestamp: new Date().toISOString(),
-        });
-
-        if (success) {
-            console.log("✅ Vektör başarıyla eklendi!");
-
-            // Koleksiyon durumunu kontrol et
-            const info = await qdrant.getCollectionInfo();
-            console.log(
-                "📊 Koleksiyon durumu:",
-                info.result.points_count,
-                "vektör"
-            );
-
-            // Benzer vektörleri ara
-            console.log("🔍 Benzer vektörler aranıyor...");
-            const similar = await qdrant.searchSimilar(embedding, 5);
-            console.log("📋 Benzer vektörler:", similar.length);
-        } else {
-            console.log("❌ Vektör eklenemedi!");
-        }
-    } catch (error) {
-        console.error("❌ Hata:", error.message);
+    // 1. Koleksiyonu oluştur
+    console.log("🛠️ Qdrant koleksiyonu oluşturuluyor...");
+    const created = await qdrant.createCollection();
+    if (created) {
+        console.log("✅ Koleksiyon başarıyla oluşturuldu veya zaten mevcut.");
+    } else {
+        console.error("❌ Koleksiyon oluşturulamadı!");
+        process.exit(1);
     }
-}
 
-testVectorAddition();
+    // 2. Vektör ekleme testi (mevcut kod)
+    console.log("🔍 Vektör ekleme testi başlıyor...");
+    const testText = "Test embedding için örnek metin.";
+    console.log("📝 Embedding oluşturuluyor...");
+    const embedding = await embeddingService.getEmbedding(testText);
+    console.log("✅ Embedding oluşturuldu, boyut:", embedding.length);
+    console.log("💾 Qdrant'a ekleniyor...");
+    const added = await qdrant.addVector("test_id", embedding, { test: true });
+    if (added) {
+        console.log("✅ Vektör başarıyla eklendi!");
+    } else {
+        console.error("❌ Vektör eklenemedi!");
+    }
+
+    // 3. Koleksiyon durumu
+    const info = await qdrant.getCollectionInfo();
+    console.log(
+        "📊 Koleksiyon durumu:",
+        info?.result?.points_count || 0,
+        "vektör"
+    );
+
+    // 4. Benzer vektör arama
+    console.log("🔍 Benzer vektörler aranıyor...");
+    const similars = await qdrant.searchSimilar(embedding, 3);
+    console.log("📋 Benzer vektörler:", similars.length);
+})();

@@ -2,10 +2,10 @@ const Log = require("../models/Log");
 const { queryAI } = require("../config/ai");
 const QdrantClient = require("../config/qdrant");
 const EmbeddingService = require("../config/embedding");
+const { TRAINING_EXAMPLES } = require("../config/trainingData");
 
 const qdrant = new QdrantClient();
 let embeddingService = null;
-
 
 const getEmbeddingService = () => {
     if (!embeddingService) {
@@ -26,20 +26,16 @@ const processQuery = async (req, res) => {
     const start = Date.now();
 
     try {
-        
         const similarQueries = await findSimilarQueries(prompt);
 
-        
         const enhancedPrompt = createEnhancedPrompt(prompt, similarQueries);
 
-        
         const aiResponse = await queryAI(enhancedPrompt);
         const end = Date.now();
         const duration = (end - start) / 1000;
 
         const reply = aiResponse.choices?.[0]?.text || "Yanıt alınamadı.";
 
-        
         const log = new Log({
             prompt: prompt.trim(),
             response: reply,
@@ -47,7 +43,6 @@ const processQuery = async (req, res) => {
         });
         await log.save();
 
-        
         await addToVectorDatabase(log._id.toString(), prompt, reply);
 
         res.json({
@@ -69,62 +64,132 @@ const processQuery = async (req, res) => {
     }
 };
 
-
 const findSimilarQueries = async (prompt) => {
     try {
-        
+        // Önce vektör veritabanından benzer sorguları bul
         const embedding = await getEmbeddingService().getEmbedding(prompt);
-
-        
         const similarVectors = await qdrant.searchSimilar(embedding, 3);
 
-        
-        return similarVectors
+        const dbResults = similarVectors
             .filter((item) => item.score > 0.7)
             .map((item) => item.payload);
+
+        // Eğer vektör veritabanında yeterli sonuç yoksa, önceden eğitilmiş örnekleri kullan
+        if (dbResults.length < 2) {
+            console.log("📚 Önceden eğitilmiş örnekler kullanılıyor...");
+            const trainingExamples = findBestTrainingExamples(prompt);
+            return [...dbResults, ...trainingExamples];
+        }
+
+        return dbResults;
     } catch (error) {
         console.error("Benzer sorgular bulunamadı:", error.message);
-        return [];
+        // Hata durumunda önceden eğitilmiş örnekleri kullan
+        return findBestTrainingExamples(prompt);
     }
 };
 
+// Önceden eğitilmiş örneklerden en uygun olanları seç
+const findBestTrainingExamples = (prompt) => {
+    try {
+        // Basit keyword matching ile en uygun örnekleri seç
+        const promptLower = prompt.toLowerCase();
+
+        // Haftalık çalışma saatleri ile ilgili anahtar kelimeler
+        const workHourKeywords = [
+            "haftalık",
+            "çalışma",
+            "saat",
+            "pazartesi",
+            "salı",
+            "çarşamba",
+            "perşembe",
+            "cuma",
+            "cumartesi",
+            "pazar",
+            "mesai",
+            "öğle arası",
+            "08:",
+            "09:",
+            "17:",
+            "18:",
+            "19:",
+            "20:",
+        ];
+
+        // Kullanıcının sorusunda bu kelimelerden kaç tanesi var
+        const keywordMatches = workHourKeywords.filter((keyword) =>
+            promptLower.includes(keyword)
+        ).length;
+
+        // Eğer haftalık çalışma saatleri ile ilgili bir soru ise, tüm örnekleri kullan
+        if (keywordMatches >= 3) {
+            console.log(
+                "🎯 Haftalık çalışma analizi için önceden eğitilmiş örnekler kullanılıyor"
+            );
+            return TRAINING_EXAMPLES.slice(0, 3); // En iyi 3 örneği kullan
+        }
+
+        // Genel sorular için 1-2 örnek kullan
+        return TRAINING_EXAMPLES.slice(0, 2);
+    } catch (error) {
+        console.error("Önceden eğitilmiş örnek seçimi hatası:", error.message);
+        return TRAINING_EXAMPLES.slice(0, 2); // Varsayılan olarak 2 örnek
+    }
+};
 
 const createEnhancedPrompt = (originalPrompt, similarQueries) => {
     if (similarQueries.length === 0) {
-        return `Sen bir Türkçe asistanısın. Haftalık çalışma verilerini yorumla:\n${originalPrompt}`;
+        return `Sen bir Türkçe AI asistanısın. Aşağıdaki haftalık çalışma verilerini analiz et ve Türkçe olarak yanıt ver.
+
+Çalışma verileri:
+${originalPrompt}
+
+Lütfen şu kriterlere göre analiz yap:
+1. Toplam çalışma süresini hesapla
+2. Günlük ortalama çalışma süresini belirle
+3. Güçlü yönleri ve gelişim alanlarını tespit et
+4. Sağlık ve verimlilik açısından değerlendir
+5. Somut öneriler sun
+
+Yanıtını Türkçe olarak, emoji ve formatlamayı kullanarak ver.`;
     }
 
     const context = similarQueries
         .map((query, index) => {
-            return `Örnek ${index + 1}:\nSoru: ${query.prompt}\nYanıt: ${
-                query.response
-            }\n`;
+            return `📋 Örnek ${index + 1}:
+❓ Soru: ${query.prompt}
+💡 Yanıt: ${query.response}`;
         })
-        .join("\n");
+        .join("\n\n");
 
-    return `Sen bir Türkçe asistanısın. Aşağıdaki benzer örnekleri inceleyerek, verilen haftalık çalışma verilerini yorumla:
+    return `Sen bir Türkçe AI asistanısın. Aşağıdaki benzer örnekleri inceleyerek, verilen haftalık çalışma verilerini analiz et ve Türkçe olarak yanıt ver.
 
 ${context}
 
-Şimdi bu örneklerdeki yaklaşımı kullanarak aşağıdaki verileri yorumla:
+🎯 Şimdi bu örneklerdeki yaklaşımı, analiz kalitesini ve detay seviyesini kullanarak aşağıdaki verileri yorumla:
 
+Çalışma verileri:
 ${originalPrompt}
 
-Lütfen önceki örneklerdeki analiz kalitesini ve detay seviyesini koruyarak yanıt ver.`;
-};
+📊 Lütfen şu kriterlere göre analiz yap:
+1. Toplam çalışma süresini hesapla
+2. Günlük ortalama çalışma süresini belirle
+3. Güçlü yönleri ve gelişim alanlarını tespit et
+4. Sağlık ve verimlilik açısından değerlendir
+5. Somut öneriler sun
 
+💡 Önceki örneklerdeki analiz kalitesini, detay seviyesini ve Türkçe dil kullanımını koruyarak yanıt ver. Emoji ve formatlamayı kullan.`;
+};
 
 const addToVectorDatabase = async (id, prompt, response) => {
     try {
-        
         const combinedText = `${prompt}\n\n${response}`;
 
-        
         const embedding = await getEmbeddingService().getEmbedding(
             combinedText
         );
 
-        
         await qdrant.addVector(id, embedding, {
             prompt: prompt,
             response: response,
@@ -167,7 +232,6 @@ const getHistory = async (req, res) => {
     }
 };
 
-
 const populateVectorDatabase = async (req, res) => {
     try {
         const logs = await Log.find().sort({ createdAt: -1 }).limit(100);
@@ -209,8 +273,58 @@ const populateVectorDatabase = async (req, res) => {
     }
 };
 
+const populateTrainingExamples = async (req, res) => {
+    try {
+        console.log(
+            "📚 Önceden eğitilmiş örnekler vektör veritabanına ekleniyor..."
+        );
+
+        let addedCount = 0;
+        for (const example of TRAINING_EXAMPLES) {
+            try {
+                const combinedText = `${example.prompt}\n\n${example.response}`;
+                const embedding = await getEmbeddingService().getEmbedding(
+                    combinedText
+                );
+
+                // Benzersiz ID oluştur
+                const trainingId = `training_${Date.now()}_${addedCount}`;
+
+                await qdrant.addVector(trainingId, embedding, {
+                    prompt: example.prompt,
+                    response: example.response,
+                    timestamp: new Date().toISOString(),
+                    type: "training_example",
+                    category: "weekly_work_hours",
+                });
+
+                addedCount++;
+                console.log(
+                    `✅ Eğitim örneği eklendi: ${addedCount}/${TRAINING_EXAMPLES.length}`
+                );
+            } catch (error) {
+                console.error(`❌ Eğitim örneği eklenemedi:`, error.message);
+            }
+        }
+
+        res.json({
+            success: true,
+            message: `${addedCount} önceden eğitilmiş örnek vektör veritabanına eklendi`,
+            totalExamples: TRAINING_EXAMPLES.length,
+            addedCount: addedCount,
+        });
+    } catch (error) {
+        console.error("Eğitim örnekleri ekleme hatası:", error);
+        res.status(500).json({
+            error: "Eğitim örnekleri eklenemedi.",
+            details: error.message,
+        });
+    }
+};
+
 module.exports = {
     processQuery,
     getHistory,
     populateVectorDatabase,
+    populateTrainingExamples,
 };

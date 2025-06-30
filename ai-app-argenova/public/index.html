@@ -38,7 +38,7 @@
                                 id="prompt" 
                                 name="prompt"
                                 rows="8" 
-                                placeholder="Örnek:&#10;Pazartesi: 08:30-17:00&#10;Salı: 09:00-17:30&#10;Çarşamba: 08:45-16:45&#10;Perşembe: 09:15-17:15&#10;Cuma: 08:00-16:30&#10;Cumartesi: 10:00-14:00&#10;Pazar: Tatil"
+                                placeholder="Örnek:&#10;Sen bir Türkçe asistanısın. Mesai saatlerimiz öğle arası 12.00 - 13.00. Haftalık çalışma verilerini yorumla:&#10;Pazartesi: 08:45–17:10&#10;Salı: 09:15–17:00&#10;Çarşamba: 08:30–17:30&#10;Perşembe: 09:00–17:15&#10;Cuma: 08:00–16:45"
                                 required
                             ></textarea>
                         </div>
@@ -80,12 +80,17 @@
                 <div class="vector-card">
                     <div class="card-header">
                         <h2><i class="fas fa-database"></i> Vektör Veritabanı</h2>
-                        <button id="refreshVectors" class="refresh-btn" title="Yenile">
-                            <i class="fas fa-sync-alt"></i>
-                        </button>
-                        <button id="clearVectors" class="refresh-btn danger" title="Temizle">
-                            <i class="fas fa-trash"></i>
-                        </button>
+                        <div class="header-buttons">
+                            <button id="loadTrainingExamples" class="refresh-btn success" title="Eğitim Örnekleri Yükle">
+                                <i class="fas fa-graduation-cap"></i>
+                            </button>
+                            <button id="refreshVectors" class="refresh-btn" title="Yenile">
+                                <i class="fas fa-sync-alt"></i>
+                            </button>
+                            <button id="clearVectors" class="refresh-btn danger" title="Temizle">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </div>
                     </div>
                     <div id="vectorList" class="vector-list">
                         <div class="loading">

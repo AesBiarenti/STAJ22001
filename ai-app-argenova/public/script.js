@@ -1,4 +1,3 @@
-
 const queryForm = document.getElementById("queryForm");
 const promptInput = document.getElementById("prompt");
 const submitBtn = document.getElementById("submitBtn");
@@ -8,16 +7,17 @@ const responseTime = document.getElementById("responseTime");
 const historyContainer = document.getElementById("history");
 const refreshHistoryBtn = document.getElementById("refreshHistory");
 const loadingOverlay = document.getElementById("loadingOverlay");
-const vectorList = document.getElementById('vectorList');
-const refreshVectorsBtn = document.getElementById('refreshVectors');
-const clearVectorsBtn = document.getElementById('clearVectors');
-
+const vectorList = document.getElementById("vectorList");
+const refreshVectorsBtn = document.getElementById("refreshVectors");
+const clearVectorsBtn = document.getElementById("clearVectors");
+const loadTrainingExamplesBtn = document.getElementById("loadTrainingExamples");
 
 queryForm.addEventListener("submit", handleSubmit);
 refreshHistoryBtn.addEventListener("click", loadHistory);
-if (refreshVectorsBtn) refreshVectorsBtn.addEventListener('click', loadVectors);
-if (clearVectorsBtn) clearVectorsBtn.addEventListener('click', clearVectors);
-
+if (refreshVectorsBtn) refreshVectorsBtn.addEventListener("click", loadVectors);
+if (clearVectorsBtn) clearVectorsBtn.addEventListener("click", clearVectors);
+if (loadTrainingExamplesBtn)
+    loadTrainingExamplesBtn.addEventListener("click", loadTrainingExamples);
 
 async function handleSubmit(e) {
     e.preventDefault();
@@ -28,7 +28,6 @@ async function handleSubmit(e) {
         return;
     }
 
-    
     setLoadingState(true);
     showLoadingOverlay();
 
@@ -209,13 +208,12 @@ function initApp() {
     promptInput.addEventListener("focus", function () {
         if (!this.value.trim()) {
             this.placeholder = `Örnek:
-Pazartesi: 08:30-17:00
-Salı: 09:00-17:30
-Çarşamba: 08:45-16:45
-Perşembe: 09:15-17:15
-Cuma: 08:00-16:30
-Cumartesi: 10:00-14:00
-Pazar: Tatil`;
+Sen bir Türkçe asistanısın. Mesai saatlerimiz öğle arası 12.00 - 13.00. Haftalık çalışma verilerini yorumla:
+Pazartesi: 08:45–17:10
+Salı: 09:15–17:00
+Çarşamba: 08:30–17:30
+Perşembe: 09:00–17:15
+Cuma: 08:00–16:45`;
         }
     });
 }
@@ -225,37 +223,84 @@ document.addEventListener("DOMContentLoaded", initApp);
 async function loadVectors() {
     try {
         vectorList.innerHTML = `<div class="loading"><i class="fas fa-spinner fa-spin"></i> <span>Vektörler yükleniyor...</span></div>`;
-        const res = await fetch('/api/vectors/list');
-        if (!res.ok) throw new Error('Vektörler yüklenemedi');
+        const res = await fetch("/api/vectors/list");
+        if (!res.ok) throw new Error("Vektörler yüklenemedi");
         const data = await res.json();
         if (!data.vectors || data.vectors.length === 0) {
             vectorList.innerHTML = `<div class="loading"><i class="fas fa-inbox"></i> <span>Vektör bulunamadı</span></div>`;
             return;
         }
-        vectorList.innerHTML = data.vectors.map((v, i) => `
+        vectorList.innerHTML = data.vectors
+            .map(
+                (v, i) => `
             <div class="vector-item">
                 <div class="vector-meta">
-                    <b>#${i + 1}</b> | <span><i class="fas fa-clock"></i> ${v.payload?.timestamp ? new Date(v.payload.timestamp).toLocaleString() : '-'}</span>
+                    <b>#${i + 1}</b> | <span><i class="fas fa-clock"></i> ${
+                    v.payload?.timestamp
+                        ? new Date(v.payload.timestamp).toLocaleString()
+                        : "-"
+                }</span>
                 </div>
                 <div class="vector-payload">
-                    <b>Soru:</b> ${v.payload?.prompt || '-'}<br>
-                    <b>Cevap:</b> ${v.payload?.response || '-'}
+                    <b>Soru:</b> ${v.payload?.prompt || "-"}<br>
+                    <b>Cevap:</b> ${v.payload?.response || "-"}
                 </div>
             </div>
-        `).join('');
+        `
+            )
+            .join("");
     } catch (error) {
         vectorList.innerHTML = `<div class="loading"><i class="fas fa-exclamation-triangle"></i> <span>Vektörler yüklenemedi: ${error.message}</span></div>`;
     }
 }
 
 async function clearVectors() {
-    if (!confirm('Tüm vektör veritabanı temizlensin mi?')) return;
+    if (!confirm("Tüm vektör veritabanı temizlensin mi?")) return;
     vectorList.innerHTML = `<div class="loading"><i class="fas fa-spinner fa-spin"></i> <span>Temizleniyor...</span></div>`;
     try {
-        const res = await fetch('/api/vectors/clear', { method: 'DELETE' });
-        if (!res.ok) throw new Error('Temizleme başarısız');
+        const res = await fetch("/api/vectors/clear", { method: "DELETE" });
+        if (!res.ok) throw new Error("Temizleme başarısız");
         await loadVectors();
     } catch (error) {
         vectorList.innerHTML = `<div class="loading"><i class="fas fa-exclamation-triangle"></i> <span>Temizleme hatası: ${error.message}</span></div>`;
+    }
+}
+
+async function loadTrainingExamples() {
+    if (
+        !confirm(
+            "Önceden eğitilmiş örnekler vektör veritabanına yüklensin mi? Bu işlem birkaç saniye sürebilir."
+        )
+    ) {
+        return;
+    }
+
+    const originalText = loadTrainingExamplesBtn.innerHTML;
+    loadTrainingExamplesBtn.innerHTML =
+        '<i class="fas fa-spinner fa-spin"></i>';
+    loadTrainingExamplesBtn.disabled = true;
+
+    try {
+        const response = await fetch("/api/populate-training-examples", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+        });
+
+        if (!response.ok) {
+            throw new Error("Eğitim örnekleri yüklenemedi");
+        }
+
+        const data = await response.json();
+        alert(
+            `✅ ${data.message}\n\nToplam: ${data.totalExamples} örnek\nEklenen: ${data.addedCount} örnek`
+        );
+
+        // Vektör listesini yenile
+        await loadVectors();
+    } catch (error) {
+        alert(`❌ Hata: ${error.message}`);
+    } finally {
+        loadTrainingExamplesBtn.innerHTML = originalText;
+        loadTrainingExamplesBtn.disabled = false;
     }
 }

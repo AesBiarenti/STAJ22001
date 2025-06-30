@@ -4,6 +4,7 @@ const {
     processQuery,
     getHistory,
     populateVectorDatabase,
+    populateTrainingExamples,
 } = require("../controllers/aiController");
 
 router.post("/query", processQuery);
@@ -12,6 +13,7 @@ router.get("/history", getHistory);
 
 router.post("/populate-vectors", populateVectorDatabase);
 
+router.post("/populate-training-examples", populateTrainingExamples);
 
 router.get("/vectors/status", async (req, res) => {
     try {
@@ -31,15 +33,13 @@ router.get("/vectors/status", async (req, res) => {
     }
 });
 
-
 router.get("/vectors/list", async (req, res) => {
     try {
         const QdrantClient = require("../config/qdrant");
         const qdrant = new QdrantClient();
 
-        
-        const emptyVector = new Array(1536).fill(0);
-        const results = await qdrant.searchSimilar(emptyVector, 100);
+        // Tüm vektörleri doğrudan çek
+        const results = await qdrant.getAllVectors(100);
 
         res.json({
             success: true,
@@ -53,7 +53,6 @@ router.get("/vectors/list", async (req, res) => {
         });
     }
 });
-
 
 router.delete("/vectors/clear", async (req, res) => {
     try {

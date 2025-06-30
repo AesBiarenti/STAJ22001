@@ -2,20 +2,11 @@ const axios = require("axios");
 
 const AI_CONFIG = {
     baseURL: "http://localhost:11434/api",
-    model: "phi3:mini",
+    model: "phi3:mini", // En küçük ve hızlı model
     defaultParams: {
         temperature: parseFloat(process.env.AI_TEMPERATURE) || 0.7,
-        max_tokens: parseInt(process.env.AI_MAX_TOKENS) || 256,
+        max_tokens: parseInt(process.env.AI_MAX_TOKENS) || 512,
     },
-    useLocalFallback: false,
-};
-
-const generatePrompt = (userPrompt) => {
-    return `Sen bir Türkçe asistanısın. Haftalık çalışma verilerini yorumla ve analiz et. Yanıtını Türkçe olarak ver:
-
-${userPrompt}
-
-Lütfen detaylı bir analiz yap ve öneriler sun.`;
 };
 
 const queryAI = async (prompt) => {
@@ -26,7 +17,7 @@ const queryAI = async (prompt) => {
             `${AI_CONFIG.baseURL}/generate`,
             {
                 model: AI_CONFIG.model,
-                prompt: generatePrompt(prompt),
+                prompt: prompt, // Direkt olarak gelen prompt'u kullan
                 temperature: AI_CONFIG.defaultParams.temperature,
                 max_tokens: AI_CONFIG.defaultParams.max_tokens,
                 stream: false,
@@ -35,7 +26,7 @@ const queryAI = async (prompt) => {
                 headers: {
                     "Content-Type": "application/json",
                 },
-                timeout: 120000, // 2 dakika timeout
+                timeout: 300000, // 5 dakika timeout
             }
         );
 
@@ -72,6 +63,5 @@ const queryAI = async (prompt) => {
 
 module.exports = {
     queryAI,
-    generatePrompt,
     AI_CONFIG,
 };
