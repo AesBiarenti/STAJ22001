@@ -6,6 +6,11 @@ const {
     populateVectorDatabase,
     populateTrainingExamples,
 } = require("../controllers/aiController");
+const {
+    LLAMA_MODELS,
+    getModelInfo,
+    listAvailableModels,
+} = require("../config/ai");
 
 router.post("/query", processQuery);
 
@@ -14,6 +19,39 @@ router.get("/history", getHistory);
 router.post("/populate-vectors", populateVectorDatabase);
 
 router.post("/populate-training-examples", populateTrainingExamples);
+
+// Model yönetimi endpoint'leri
+router.get("/models", async (req, res) => {
+    try {
+        const availableModels = await listAvailableModels();
+        res.json({
+            success: true,
+            availableModels,
+            supportedModels: LLAMA_MODELS,
+        });
+    } catch (error) {
+        res.status(500).json({
+            error: "Model listesi alınamadı.",
+            details: error.message,
+        });
+    }
+});
+
+router.get("/models/info/:modelName", async (req, res) => {
+    try {
+        const { modelName } = req.params;
+        const modelInfo = getModelInfo(modelName);
+        res.json({
+            success: true,
+            modelInfo,
+        });
+    } catch (error) {
+        res.status(500).json({
+            error: "Model bilgisi alınamadı.",
+            details: error.message,
+        });
+    }
+});
 
 router.get("/vectors/status", async (req, res) => {
     try {

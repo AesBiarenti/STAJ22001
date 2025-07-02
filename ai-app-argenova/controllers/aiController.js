@@ -15,7 +15,7 @@ const getEmbeddingService = () => {
 };
 
 const processQuery = async (req, res) => {
-    const { prompt } = req.body;
+    const { prompt, logId } = req.body;
 
     if (!prompt || prompt.trim().length === 0) {
         return res.status(400).json({
@@ -27,21 +27,36 @@ const processQuery = async (req, res) => {
 
     try {
         const similarQueries = await findSimilarQueries(prompt);
-
         const enhancedPrompt = createEnhancedPrompt(prompt, similarQueries);
-
         const aiResponse = await queryAI(enhancedPrompt);
         const end = Date.now();
         const duration = (end - start) / 1000;
-
         const reply = aiResponse.choices?.[0]?.text || "Yanıt alınamadı.";
 
-        const log = new Log({
-            prompt: prompt.trim(),
-            response: reply,
-            duration,
-        });
-        await log.save();
+        let log;
+        if (logId) {
+            // Var olan sohbete yeni mesaj ekle
+            log = await Log.findById(logId);
+            if (!log) {
+                return res.status(404).json({ error: "Sohbet bulunamadı." });
+            }
+            log.messages.push(
+                { sender: "user", content: prompt, createdAt: new Date() },
+                { sender: "bot", content: reply, createdAt: new Date() }
+            );
+            log.duration += duration;
+            await log.save();
+        } else {
+            // Yeni sohbet başlat
+            log = new Log({
+                messages: [
+                    { sender: "user", content: prompt, createdAt: new Date() },
+                    { sender: "bot", content: reply, createdAt: new Date() },
+                ],
+                duration,
+            });
+            await log.save();
+        }
 
         await addToVectorDatabase(log._id.toString(), prompt, reply);
 
@@ -49,6 +64,7 @@ const processQuery = async (req, res) => {
             reply,
             duration,
             success: true,
+            logId: log._id,
             similarQueries: similarQueries.length,
             enhancedPrompt:
                 enhancedPrompt.length > 500

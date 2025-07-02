@@ -3,113 +3,165 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AI Asistanı - Haftalık Çalışma Analizi</title>
+    <title>AI Asistanı - Chat</title>
     <link rel="stylesheet" href="style.css">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Vue.js 3 CDN -->
+    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
 </head>
 <body>
-    <div class="app-container">
-        <header class="header">
-            <div class="header-content">
+    <div id="app" class="chatgpt-app-container">
+        <!-- Mobilde hamburger menü butonu -->
+        <button class="sidebar-toggle" @click="sidebarOpen = true">
+            <i class="fas fa-bars"></i>
+        </button>
+        <!-- Sidebar ve overlay -->
+        <div :class="['sidebar-overlay', { open: sidebarOpen }]" @click.self="sidebarOpen = false" v-if="sidebarOpen"></div>
+        <aside class="chatgpt-sidebar" :class="{ open: sidebarOpen }">
+            <div class="sidebar-header">
                 <div class="logo">
                     <i class="fas fa-robot"></i>
-                    <h1>AI Asistanı</h1>
+                    <span>AI Asistanı</span>
                 </div>
-                <p class="subtitle">Haftalık Çalışma Verilerini Analiz Edin</p>
+                <button class="new-chat-btn" @click="startNewChat">
+                    <i class="fas fa-plus"></i>
+                    Yeni Sohbet
+                </button>
+                <!-- Mobilde sidebar kapama butonu -->
+                <button class="sidebar-close" @click="sidebarOpen = false">
+                    <i class="fas fa-times"></i>
+                </button>
             </div>
-        </header>
-
-        <main class="main-content">
-            <!-- Left Panel - Form -->
-            <div class="left-panel">
-                <div class="form-card">
-                    <div class="card-header">
-                        <h2><i class="fas fa-edit"></i> Yeni Sorgu</h2>
-                        <p>Haftalık çalışma verilerinizi girin ve AI analizi alın</p>
-                    </div>
-                    <form id="queryForm" class="query-form">
-                        <div class="form-group">
-                            <label for="prompt">
-                                <i class="fas fa-calendar-week"></i>
-                                Haftalık Çalışma Verileri
-                            </label>
-                            <textarea 
-                                id="prompt" 
-                                name="prompt"
-                                rows="8" 
-                                placeholder="Örnek:&#10;Sen bir Türkçe asistanısın. Mesai saatlerimiz öğle arası 12.00 - 13.00. Haftalık çalışma verilerini yorumla:&#10;Pazartesi: 08:45–17:10&#10;Salı: 09:15–17:00&#10;Çarşamba: 08:30–17:30&#10;Perşembe: 09:00–17:15&#10;Cuma: 08:00–16:45"
-                                required
-                            ></textarea>
-                        </div>
-                        <button type="submit" id="submitBtn" class="submit-btn">
-                            <i class="fas fa-paper-plane"></i>
-                            <span>Analiz Et</span>
+            <div class="sidebar-content">
+                <div class="model-selector">
+                    <label for="modelSelect">
+                        <i class="fas fa-cog"></i>
+                        Model:
+                    </label>
+                    <select id="modelSelect" class="model-select" v-model="selectedModel" @change="handleModelChange">
+                        <option value="llama3.2:3b">Llama 3.2 3B (Hızlı)</option>
+                        <option value="llama3.2:7b">Llama 3.2 7B (Dengeli)</option>
+                        <option value="llama3.2:70b">Llama 3.2 70B (Yüksek Kalite)</option>
+                        <option value="phi3:mini">Phi-3 Mini (Çok Hızlı)</option>
+                        <option value="phi3:small">Phi-3 Small (Hızlı)</option>
+                    </select>
+                </div>
+                <div class="sidebar-tabs">
+                    <div class="tab-buttons">
+                        <button class="tab-btn" :class="{ active: activeTab === 'history' }" @click="switchTab('history')">
+                            <i class="fas fa-history"></i>
+                            Geçmiş
                         </button>
-                    </form>
-                    <div id="responseContainer" class="response-container" style="display: none;">
-                        <div class="response-header">
-                            <h3><i class="fas fa-brain"></i> AI Analizi</h3>
-                            <div class="response-meta">
-                                <span id="responseTime" class="time-badge"></span>
+                        <button class="tab-btn" :class="{ active: activeTab === 'vectors' }" @click="switchTab('vectors')">
+                            <i class="fas fa-database"></i>
+                            Vektörler
+                        </button>
+                    </div>
+                    <div class="tab-content">
+                        <!-- Geçmiş Tab -->
+                        <div class="tab-pane" :class="{ active: activeTab === 'history' }" id="history-tab">
+                            <div class="chat-history">
+                                <h3>Geçmiş Sorgular</h3>
+                                <div class="history-list">
+                                    <div v-if="loadingHistory" class="loading">
+                                        <i class="fas fa-spinner fa-spin"></i>
+                                        <span>Yükleniyor...</span>
+                                    </div>
+                                    <div v-else-if="history.length === 0" class="loading">
+                                        <i class="fas fa-inbox"></i>
+                                        <span>Henüz sorgu bulunmuyor</span>
+                                    </div>
+                                    <div v-else>
+                                        <div v-for="(item, index) in history" :key="index" 
+                                             class="history-item" @click="loadHistoryChat(item); sidebarOpen = false;">
+                                            <div class="history-prompt">{{ truncateText(item.prompt, 50) }}</div>
+                                            <div class="history-meta">
+                                                <span><i class="fas fa-clock"></i> {{ item.duration.toFixed(2) }}s</span>
+                                                <span><i class="fas fa-calendar"></i> {{ formatDate(item.createdAt) }}</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
                             </div>
                         </div>
-                        <div id="response" class="response-content"></div>
-                    </div>
-                </div>
-            </div>
-            <!-- Middle Panel - History -->
-            <div class="middle-panel">
-                <div class="history-card">
-                    <div class="card-header">
-                        <h2><i class="fas fa-history"></i> Geçmiş Sorgular</h2>
-                        <button id="refreshHistory" class="refresh-btn" title="Yenile">
-                            <i class="fas fa-sync-alt"></i>
-                        </button>
-                    </div>
-                    <div id="history" class="history-list">
-                        <div class="loading">
-                            <i class="fas fa-spinner fa-spin"></i>
-                            <span>Geçmiş yükleniyor...</span>
+                        <!-- Vektörler Tab -->
+                        <div class="tab-pane" :class="{ active: activeTab === 'vectors' }" id="vectors-tab">
+                            <div class="vector-database">
+                                <h3>Vektör Veritabanı</h3>
+                                <div class="vector-controls">
+                                    <button class="vector-btn" @click="loadTrainingExamples" :disabled="loadingTraining">
+                                        <i :class="loadingTraining ? 'fas fa-spinner fa-spin' : 'fas fa-graduation-cap'"></i>
+                                        {{ loadingTraining ? 'Yükleniyor...' : 'Eğitim Örnekleri' }}
+                                    </button>
+                                    <button class="vector-btn" @click="clearVectors" :disabled="clearingVectors">
+                                        <i :class="clearingVectors ? 'fas fa-spinner fa-spin' : 'fas fa-trash'"></i>
+                                        {{ clearingVectors ? 'Temizleniyor...' : 'Temizle' }}
+                                    </button>
+                                </div>
+                                <div class="vector-list">
+                                    <div v-if="loadingVectors" class="loading">
+                                        <i class="fas fa-spinner fa-spin"></i>
+                                        <span>Vektörler yükleniyor...</span>
+                                    </div>
+                                    <div v-else-if="vectors.length === 0" class="loading">
+                                        <i class="fas fa-database"></i>
+                                        <span>Vektör bulunmuyor</span>
+                                    </div>
+                                    <div v-else>
+                                        <div v-for="vector in vectors" :key="vector.id" class="vector-item">
+                                            <div class="vector-meta">
+                                                <i class="fas fa-hashtag"></i>
+                                                ID: {{ vector.id }}
+                                            </div>
+                                            <div class="vector-payload">
+                                                <strong>Soru:</strong> {{ truncateText(vector.payload?.prompt || 'Soru yok', 40) }}<br>
+                                                <strong>Yanıt:</strong> {{ truncateText(vector.payload?.response || 'Yanıt yok', 40) }}
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
             </div>
-            <!-- Right Panel - Vector DB -->
-            <div class="right-panel">
-                <div class="vector-card">
-                    <div class="card-header">
-                        <h2><i class="fas fa-database"></i> Vektör Veritabanı</h2>
-                        <div class="header-buttons">
-                            <button id="loadTrainingExamples" class="refresh-btn success" title="Eğitim Örnekleri Yükle">
-                                <i class="fas fa-graduation-cap"></i>
-                            </button>
-                            <button id="refreshVectors" class="refresh-btn" title="Yenile">
-                                <i class="fas fa-sync-alt"></i>
-                            </button>
-                            <button id="clearVectors" class="refresh-btn danger" title="Temizle">
-                                <i class="fas fa-trash"></i>
-                            </button>
-                        </div>
+        </aside>
+        <!-- Main Chat Area -->
+        <main class="chatgpt-main">
+            <div class="chatgpt-messages" ref="chatMessages">
+                <div v-for="(message, index) in messages" :key="index" 
+                     class="chatgpt-message" :class="message.sender">
+                    <div class="avatar">
+                        <i :class="message.sender === 'user' ? 'fas fa-user' : 'fas fa-robot'"></i>
                     </div>
-                    <div id="vectorList" class="vector-list">
-                        <div class="loading">
-                            <i class="fas fa-spinner fa-spin"></i>
-                            <span>Vektörler yükleniyor...</span>
-                        </div>
-                    </div>
+                    <div class="content" v-html="message.content"></div>
                 </div>
             </div>
+            <form class="chatgpt-input-area" @submit.prevent="sendMessage">
+                <div class="input-row">
+                    <textarea 
+                        v-model="newMessage" 
+                        class="chatgpt-input" 
+                        placeholder="Mesajınızı yazın..." 
+                        rows="1"
+                        @input="autoResize"
+                        @keydown="handleKeyDown"
+                        ref="messageInput"
+                    ></textarea>
+                    <button type="submit" class="chatgpt-send-btn" :disabled="!newMessage.trim() || sending">
+                        <i :class="sending ? 'fas fa-spinner fa-spin' : 'fas fa-paper-plane'"></i>
+                    </button>
+                </div>
+            </form>
         </main>
-    </div>
-    
-    <div id="loadingOverlay" class="loading-overlay" style="display: none;">
-        <div class="loading-content">
-            <div class="spinner"></div>
-            <p>AI analizi yapılıyor...</p>
+        <div v-if="loading" class="loading-overlay">
+            <div class="loading-content">
+                <div class="spinner"></div>
+                <p>AI düşünüyor...</p>
+            </div>
         </div>
     </div>
-
     <script src="script.js"></script>
 </body>
 </html>

@@ -1,306 +1,352 @@
-const queryForm = document.getElementById("queryForm");
-const promptInput = document.getElementById("prompt");
-const submitBtn = document.getElementById("submitBtn");
-const responseContainer = document.getElementById("responseContainer");
-const responseEl = document.getElementById("response");
-const responseTime = document.getElementById("responseTime");
-const historyContainer = document.getElementById("history");
-const refreshHistoryBtn = document.getElementById("refreshHistory");
-const loadingOverlay = document.getElementById("loadingOverlay");
-const vectorList = document.getElementById("vectorList");
-const refreshVectorsBtn = document.getElementById("refreshVectors");
-const clearVectorsBtn = document.getElementById("clearVectors");
-const loadTrainingExamplesBtn = document.getElementById("loadTrainingExamples");
+// Vue.js 3 Uygulaması
+const { createApp } = Vue;
 
-queryForm.addEventListener("submit", handleSubmit);
-refreshHistoryBtn.addEventListener("click", loadHistory);
-if (refreshVectorsBtn) refreshVectorsBtn.addEventListener("click", loadVectors);
-if (clearVectorsBtn) clearVectorsBtn.addEventListener("click", clearVectors);
-if (loadTrainingExamplesBtn)
-    loadTrainingExamplesBtn.addEventListener("click", loadTrainingExamples);
+createApp({
+    data() {
+        return {
+            // Chat verileri
+            messages: [
+                {
+                    sender: "bot",
+                    content:
+                        "Merhaba! Ben AI Asistanınız. Size nasıl yardımcı olabilirim?",
+                },
+            ],
+            newMessage: "",
+            sending: false,
+            loading: false,
 
-async function handleSubmit(e) {
-    e.preventDefault();
+            // Model seçimi
+            selectedModel: "llama3.2:7b",
 
-    const prompt = promptInput.value.trim();
-    if (!prompt) {
-        showError("Lütfen haftalık çalışma verilerini girin.");
-        return;
-    }
+            // Tab sistemi
+            activeTab: "history",
 
-    setLoadingState(true);
-    showLoadingOverlay();
+            // Geçmiş sorgular
+            history: [],
+            loadingHistory: false,
 
-    try {
-        const response = await fetch("/api/query", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ prompt }),
-        });
+            // Vektör veritabanı
+            vectors: [],
+            loadingVectors: false,
+            loadingTraining: false,
+            clearingVectors: false,
 
-        if (!response.ok) {
-            const errorData = await response.json();
-            throw new Error(errorData.error || "Sunucu hatası");
-        }
+            // Mobil sidebar
+            sidebarOpen: false,
+        };
+    },
 
-        const data = await response.json();
-        showResponse(data);
-        loadHistory();
-    } catch (error) {
-        showError(`Hata: ${error.message}`);
-    } finally {
-        setLoadingState(false);
-        hideLoadingOverlay();
-    }
-}
+    mounted() {
+        this.loadHistory();
+        this.loadVectors();
+        this.loadSavedModel();
+    },
 
-function showResponse(data) {
-    const duration = data.duration ?? 0;
-    const reply = data.reply || "Yanıt alınamadı.";
+    methods: {
+        // Mesaj gönderme
+        async sendMessage() {
+            if (!this.newMessage.trim() || this.sending) return;
 
-    responseEl.textContent = reply;
-    responseTime.textContent = `${duration.toFixed(2)} saniye`;
+            const userMessage = this.newMessage.trim();
+            this.messages.push({
+                sender: "user",
+                content: this.escapeHTML(userMessage),
+            });
 
-    responseContainer.style.display = "block";
-    responseContainer.scrollIntoView({
-        behavior: "smooth",
-        block: "nearest",
-    });
-}
+            this.newMessage = "";
+            this.sending = true;
+            this.loading = true;
 
-function showError(message) {
-    responseEl.textContent = message;
-    responseTime.textContent = "";
-    responseContainer.style.display = "block";
-}
+            try {
+                const response = await fetch("/api/query", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                        prompt: userMessage,
+                        model: this.selectedModel,
+                    }),
+                });
 
-function setLoadingState(isLoading) {
-    submitBtn.disabled = isLoading;
-    const btnText = submitBtn.querySelector("span");
-    const btnIcon = submitBtn.querySelector("i");
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    throw new Error(errorData.error || "Sunucu hatası");
+                }
 
-    if (isLoading) {
-        btnText.textContent = "Analiz Ediliyor...";
-        btnIcon.className = "fas fa-spinner fa-spin";
-    } else {
-        btnText.textContent = "Analiz Et";
-        btnIcon.className = "fas fa-paper-plane";
-    }
-}
+                const data = await response.json();
+                this.messages.push({
+                    sender: "bot",
+                    content: this.escapeHTML(data.reply || "Yanıt alınamadı."),
+                });
 
-function showLoadingOverlay() {
-    loadingOverlay.style.display = "flex";
-}
+                this.loadHistory(); // Geçmişi güncelle
+            } catch (error) {
+                this.messages.push({
+                    sender: "bot",
+                    content: `Hata: ${error.message}`,
+                });
+            } finally {
+                this.sending = false;
+                this.loading = false;
+                this.$nextTick(() => {
+                    this.scrollToBottom();
+                });
+            }
+        },
 
-function hideLoadingOverlay() {
-    loadingOverlay.style.display = "none";
-}
+        // Yeni sohbet başlat
+        startNewChat() {
+            this.messages = [
+                {
+                    sender: "bot",
+                    content:
+                        "Merhaba! Ben AI Asistanınız. Size nasıl yardımcı olabilirim?",
+                },
+            ];
+        },
 
-async function loadHistory() {
-    try {
-        historyContainer.innerHTML = `
-            <div class="loading">
-                <i class="fas fa-spinner fa-spin"></i>
-                <span>Geçmiş yükleniyor...</span>
-            </div>
-        `;
+        // Geçmiş sohbet yükle
+        loadHistoryChat(log) {
+            this.messages = [
+                {
+                    sender: "bot",
+                    content:
+                        "<strong>Geçmiş Sorgu Yüklendi</strong><br>Bu geçmiş sorguyu inceleyebilir veya yeni bir soru sorabilirsiniz.",
+                },
+                {
+                    sender: "user",
+                    content: this.escapeHTML(log.prompt),
+                },
+                {
+                    sender: "bot",
+                    content: this.escapeHTML(log.response),
+                },
+            ];
+        },
 
-        const response = await fetch("/api/history");
-        if (!response.ok) {
-            throw new Error("Geçmiş yüklenemedi");
-        }
+        // Tab değiştirme
+        switchTab(tabName) {
+            this.activeTab = tabName;
+        },
 
-        const data = await response.json();
-        renderHistory(data.logs || []);
-    } catch (error) {
-        console.error("Geçmiş yüklenemedi:", error);
-        historyContainer.innerHTML = `
-            <div class="loading">
-                <i class="fas fa-exclamation-triangle"></i>
-                <span>Geçmiş yüklenirken hata oluştu: ${error.message}</span>
-            </div>
-        `;
-    }
-}
+        // Model değişikliği
+        handleModelChange() {
+            localStorage.setItem("selectedModel", this.selectedModel);
+            this.showNotification(
+                `Model değiştirildi: ${this.selectedModel}`,
+                "info"
+            );
+        },
 
-function renderHistory(logs) {
-    if (logs.length === 0) {
-        historyContainer.innerHTML = `
-            <div class="loading">
-                <i class="fas fa-inbox"></i>
-                <span>Henüz sorgu bulunmuyor</span>
-            </div>
-        `;
-        return;
-    }
+        // Geçmiş sorguları yükle
+        async loadHistory() {
+            this.loadingHistory = true;
+            try {
+                const response = await fetch("/api/history");
+                if (!response.ok) {
+                    throw new Error("Geçmiş yüklenemedi");
+                }
+                const data = await response.json();
+                this.history = data.logs || [];
+            } catch (error) {
+                console.error("Geçmiş yüklenemedi:", error);
+            } finally {
+                this.loadingHistory = false;
+            }
+        },
 
-    historyContainer.innerHTML = logs
-        .map(
-            (entry, index) => `
-        <div class="history-item" data-index="${index}">
-            <div class="history-header">
-                <div class="history-prompt">${truncateText(
-                    entry.prompt,
-                    100
-                )}</div>
-                <div class="history-meta">
-                    <span>
-                        <i class="fas fa-clock"></i>
-                        ${entry.duration.toFixed(2)}s
-                    </span>
-                    <span>
-                        <i class="fas fa-calendar"></i>
-                        ${formatDate(entry.createdAt)}
-                    </span>
-                </div>
-            </div>
-            <div class="history-response">
-                ${entry.response}
-            </div>
-        </div>
-    `
-        )
-        .join("");
+        // Vektörleri yükle
+        async loadVectors() {
+            this.loadingVectors = true;
+            try {
+                const response = await fetch("/api/vectors/list");
+                if (!response.ok) {
+                    throw new Error("Vektörler yüklenemedi");
+                }
+                const data = await response.json();
+                this.vectors = data.vectors || [];
+            } catch (error) {
+                console.error("Vektörler yüklenemedi:", error);
+            } finally {
+                this.loadingVectors = false;
+            }
+        },
 
-    document.querySelectorAll(".history-item").forEach((item) => {
-        item.addEventListener("click", () => {
-            item.classList.toggle("expanded");
-        });
-    });
-}
+        // Eğitim örneklerini yükle
+        async loadTrainingExamples() {
+            this.loadingTraining = true;
+            try {
+                const response = await fetch(
+                    "/api/populate-training-examples",
+                    {
+                        method: "POST",
+                    }
+                );
 
-function truncateText(text, maxLength) {
-    if (text.length <= maxLength) return text;
-    return text.substring(0, maxLength) + "...";
-}
+                if (!response.ok) {
+                    throw new Error("Eğitim örnekleri yüklenemedi");
+                }
 
-function formatDate(dateString) {
-    const date = new Date(dateString);
-    const now = new Date();
-    const diffInHours = (now - date) / (1000 * 60 * 60);
+                const data = await response.json();
+                this.showNotification(
+                    `${
+                        data.addedCount || data.count || 0
+                    } eğitim örneği yüklendi`,
+                    "success"
+                );
+                this.loadVectors();
+            } catch (error) {
+                this.showNotification(`Hata: ${error.message}`, "error");
+            } finally {
+                this.loadingTraining = false;
+            }
+        },
 
-    if (diffInHours < 24) {
-        if (diffInHours < 1) {
-            const diffInMinutes = Math.floor((now - date) / (1000 * 60));
-            return `${diffInMinutes} dakika önce`;
-        }
-        return `${Math.floor(diffInHours)} saat önce`;
-    } else if (diffInHours < 48) {
-        return "Dün";
-    } else {
-        return date.toLocaleDateString("tr-TR", {
-            day: "numeric",
-            month: "short",
-            year: "numeric",
-        });
-    }
-}
+        // Vektörleri temizle
+        async clearVectors() {
+            if (
+                !confirm("Tüm vektörleri silmek istediğinizden emin misiniz?")
+            ) {
+                return;
+            }
 
-function initApp() {
-    loadHistory();
-    loadVectors();
+            this.clearingVectors = true;
+            try {
+                const response = await fetch("/api/vectors/clear", {
+                    method: "DELETE",
+                });
 
-    promptInput.addEventListener("input", function () {
-        this.style.height = "auto";
-        this.style.height = this.scrollHeight + "px";
-    });
+                if (!response.ok) {
+                    throw new Error("Vektörler temizlenemedi");
+                }
 
-    promptInput.addEventListener("focus", function () {
-        if (!this.value.trim()) {
-            this.placeholder = `Örnek:
-Sen bir Türkçe asistanısın. Mesai saatlerimiz öğle arası 12.00 - 13.00. Haftalık çalışma verilerini yorumla:
-Pazartesi: 08:45–17:10
-Salı: 09:15–17:00
-Çarşamba: 08:30–17:30
-Perşembe: 09:00–17:15
-Cuma: 08:00–16:45`;
-        }
-    });
-}
+                this.showNotification("Vektörler temizlendi", "success");
+                this.loadVectors();
+            } catch (error) {
+                this.showNotification(`Hata: ${error.message}`, "error");
+            } finally {
+                this.clearingVectors = false;
+            }
+        },
 
-document.addEventListener("DOMContentLoaded", initApp);
+        // Kaydedilmiş modeli yükle
+        loadSavedModel() {
+            const savedModel = localStorage.getItem("selectedModel");
+            if (savedModel) {
+                this.selectedModel = savedModel;
+            }
+        },
 
-async function loadVectors() {
-    try {
-        vectorList.innerHTML = `<div class="loading"><i class="fas fa-spinner fa-spin"></i> <span>Vektörler yükleniyor...</span></div>`;
-        const res = await fetch("/api/vectors/list");
-        if (!res.ok) throw new Error("Vektörler yüklenemedi");
-        const data = await res.json();
-        if (!data.vectors || data.vectors.length === 0) {
-            vectorList.innerHTML = `<div class="loading"><i class="fas fa-inbox"></i> <span>Vektör bulunamadı</span></div>`;
-            return;
-        }
-        vectorList.innerHTML = data.vectors
-            .map(
-                (v, i) => `
-            <div class="vector-item">
-                <div class="vector-meta">
-                    <b>#${i + 1}</b> | <span><i class="fas fa-clock"></i> ${
-                    v.payload?.timestamp
-                        ? new Date(v.payload.timestamp).toLocaleString()
-                        : "-"
-                }</span>
-                </div>
-                <div class="vector-payload">
-                    <b>Soru:</b> ${v.payload?.prompt || "-"}<br>
-                    <b>Cevap:</b> ${v.payload?.response || "-"}
-                </div>
-            </div>
-        `
-            )
-            .join("");
-    } catch (error) {
-        vectorList.innerHTML = `<div class="loading"><i class="fas fa-exclamation-triangle"></i> <span>Vektörler yüklenemedi: ${error.message}</span></div>`;
-    }
-}
+        // Otomatik boyutlandırma
+        autoResize(event) {
+            const textarea = event.target;
+            textarea.style.height = "auto";
+            textarea.style.height = Math.min(textarea.scrollHeight, 120) + "px";
+        },
 
-async function clearVectors() {
-    if (!confirm("Tüm vektör veritabanı temizlensin mi?")) return;
-    vectorList.innerHTML = `<div class="loading"><i class="fas fa-spinner fa-spin"></i> <span>Temizleniyor...</span></div>`;
-    try {
-        const res = await fetch("/api/vectors/clear", { method: "DELETE" });
-        if (!res.ok) throw new Error("Temizleme başarısız");
-        await loadVectors();
-    } catch (error) {
-        vectorList.innerHTML = `<div class="loading"><i class="fas fa-exclamation-triangle"></i> <span>Temizleme hatası: ${error.message}</span></div>`;
-    }
-}
+        // Enter ile gönderme
+        handleKeyDown(event) {
+            if (event.key === "Enter" && !event.shiftKey) {
+                event.preventDefault();
+                if (this.newMessage.trim() && !this.sending) {
+                    this.sendMessage();
+                }
+            }
+        },
 
-async function loadTrainingExamples() {
-    if (
-        !confirm(
-            "Önceden eğitilmiş örnekler vektör veritabanına yüklensin mi? Bu işlem birkaç saniye sürebilir."
-        )
-    ) {
-        return;
-    }
+        // Sona kaydır
+        scrollToBottom() {
+            if (this.$refs.chatMessages) {
+                this.$refs.chatMessages.scrollTop =
+                    this.$refs.chatMessages.scrollHeight;
+            }
+        },
 
-    const originalText = loadTrainingExamplesBtn.innerHTML;
-    loadTrainingExamplesBtn.innerHTML =
-        '<i class="fas fa-spinner fa-spin"></i>';
-    loadTrainingExamplesBtn.disabled = true;
+        // HTML injection önlemi
+        escapeHTML(str) {
+            return str.replace(/[&<>'"]/g, function (tag) {
+                const charsToReplace = {
+                    "&": "&amp;",
+                    "<": "&lt;",
+                    ">": "&gt;",
+                    "'": "&#39;",
+                    '"': "&quot;",
+                };
+                return charsToReplace[tag] || tag;
+            });
+        },
 
-    try {
-        const response = await fetch("/api/populate-training-examples", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-        });
+        // Metin kısaltma
+        truncateText(text, maxLength) {
+            if (text.length <= maxLength) return text;
+            return text.substring(0, maxLength) + "...";
+        },
 
-        if (!response.ok) {
-            throw new Error("Eğitim örnekleri yüklenemedi");
-        }
+        // Tarih formatla
+        formatDate(dateString) {
+            const date = new Date(dateString);
+            const now = new Date();
+            const diffInHours = (now - date) / (1000 * 60 * 60);
 
-        const data = await response.json();
-        alert(
-            `✅ ${data.message}\n\nToplam: ${data.totalExamples} örnek\nEklenen: ${data.addedCount} örnek`
-        );
+            if (diffInHours < 24) {
+                if (diffInHours < 1) {
+                    const diffInMinutes = Math.floor(
+                        (now - date) / (1000 * 60)
+                    );
+                    return `${diffInMinutes} dakika önce`;
+                }
+                return `${Math.floor(diffInHours)} saat önce`;
+            } else if (diffInHours < 48) {
+                return "Dün";
+            } else {
+                return date.toLocaleDateString("tr-TR", {
+                    day: "numeric",
+                    month: "short",
+                    year: "numeric",
+                });
+            }
+        },
 
-        // Vektör listesini yenile
-        await loadVectors();
-    } catch (error) {
-        alert(`❌ Hata: ${error.message}`);
-    } finally {
-        loadTrainingExamplesBtn.innerHTML = originalText;
-        loadTrainingExamplesBtn.disabled = false;
-    }
-}
+        // Bildirim göster
+        showNotification(message, type = "info") {
+            const notification = document.createElement("div");
+            notification.className = `notification ${type}`;
+            notification.textContent = message;
+            notification.style.cssText = `
+                position: fixed;
+                top: 20px;
+                right: 20px;
+                background: ${
+                    type === "success"
+                        ? "#28a745"
+                        : type === "error"
+                        ? "#dc3545"
+                        : "#17a2b8"
+                };
+                color: white;
+                padding: 1rem;
+                border-radius: 8px;
+                z-index: 1000;
+                animation: slideIn 0.3s;
+            `;
+
+            document.body.appendChild(notification);
+
+            setTimeout(() => {
+                notification.remove();
+            }, 3000);
+        },
+    },
+
+    watch: {
+        // Mesajlar değiştiğinde otomatik kaydır
+        messages: {
+            handler() {
+                this.$nextTick(() => {
+                    this.scrollToBottom();
+                });
+            },
+            deep: true,
+        },
+    },
+}).mount("#app");
