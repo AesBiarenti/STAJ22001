@@ -1,6 +1,17 @@
 # AI App Argenova
 
-Bu proje, haftalık çalışma verilerini analiz eden bir AI asistan uygulamasıdır. Qdrant vektör veritabanı kullanarak geçmiş sorguları analiz eder ve daha eğitilmiş yanıtlar üretir.
+Bu proje, modern ve kullanıcı dostu bir AI chat uygulamasıdır. Haftalık çalışma verilerini analiz eden bu asistan, Qdrant vektör veritabanı ve gelişmiş RAG (retrieval-augmented generation) mimarisi ile geçmiş sorguları analiz eder ve daha eğitilmiş, şeffaf yanıtlar üretir.
+
+## 🚀 **Yeni Özellikler ve Modern Chat Arayüzü**
+
+-   ChatGPT tarzı baloncuklar, otomatik kaydırma, loading animasyonu
+-   Sidebar'da geçmiş sorgular ve vektör veritabanı sekmeleri
+-   Responsive ve mobil uyumlu, modern bir tasarım
+-   Yanıt stili (detaylı, teknik, sade), formatı (zengin, madde, tablo, kod) ve uzunluğu (kısa, detaylı) seçilebilir
+-   Her yanıtın altında, kullanılan benzer örnekler (kaynaklar) ve otomatik değerlendirme (selfCheck) gösterilir
+-   Kullanıcı, yanıt için "beğendim/beğenmedim" feedback'i verebilir
+-   Sohbet geçmişinden veya admin panelden, kaliteli log'lar eğitim örneği olarak işaretlenebilir ve dışa aktarılabilir
+-   Kod blokları, tablolar ve madde işaretleri için özel CSS ile zengin format desteği
 
 ## 🚀 **Yeni Özellik: Llama Model Desteği**
 
@@ -41,7 +52,7 @@ ollama show llama3.2:7b
 
 ## 🏗️ Proje Mimarisi
 
-Proje MVC (Model-View-Controller) mimarisine uygun olarak düzenlenmiştir:
+Proje MVC (Model-View-Controller) mimarisine uygun olarak düzenlenmiştir ve modern frontend ile tam entegredir:
 
 ```
 ai-app-argenova/
@@ -60,9 +71,9 @@ ai-app-argenova/
 │   ├── errorHandler.js    # Hata yönetimi
 │   └── requestLogger.js   # İstek loglama
 ├── public/           # Statik dosyalar
-│   ├── index.html    # Model seçici UI
-│   ├── style.css     # Responsive tasarım
-│   └── script.js     # Model yönetimi JS
+│   ├── index.html    # Modern chat arayüzü
+│   ├── style.css     # Responsive ve zengin tasarım
+│   └── script.js     # Vue.js tabanlı chat mantığı
 ├── server.js         # Ana sunucu dosyası
 ├── package.json
 ├── docker-compose.yml # Docker servisleri
@@ -122,7 +133,7 @@ OLLAMA_MODEL=llama3.2:7b
 # OpenAI Configuration (Embedding için)
 OPENAI_API_KEY=your_openai_api_key_here
 
-# Qdrant Vector Database Configuration
+# QDRANT Vector Database Configuration
 QDRANT_URL=http://localhost:6333
 QDRANT_COLLECTION=ai_logs
 
@@ -144,85 +155,25 @@ npm start
 npm run dev
 ```
 
-## 📊 API Endpoint'leri
+## 📊 API Endpoint'leri (Özet)
 
-### POST /api/query
-
-AI sorgusu gönderme (vektör veritabanı ile geliştirilmiş)
-
-```json
-{
-    "prompt": "Haftalık çalışma verileriniz..."
-}
-```
-
-### GET /api/history
-
-Geçmiş sorguları getirme
-
-```
-GET /api/history?limit=10&page=1
-```
-
-### GET /api/models
-
-Mevcut modelleri listeleme
-
-```
-GET /api/models
-```
-
-### GET /api/models/info/:modelName
-
-Model bilgilerini getirme
-
-```
-GET /api/models/info/llama3.2:7b
-```
-
-### POST /api/populate-vectors
-
-Geçmiş verileri vektör veritabanına aktarma
-
-```
-POST /api/populate-vectors
-```
-
-## 🔧 Environment Variables
-
-| Variable            | Açıklama                        | Varsayılan                          |
-| ------------------- | ------------------------------- | ----------------------------------- |
-| `AI_SERVICE_URL`    | AI servis URL'si                | `http://localhost:11434/api`        |
-| `AI_TEMPERATURE`    | AI yanıt sıcaklığı              | `0.7`                               |
-| `AI_MAX_TOKENS`     | Maksimum token sayısı           | `512`                               |
-| `OLLAMA_MODEL`      | Ollama model adı                | `llama3.2:7b`                       |
-| `OPENAI_API_KEY`    | OpenAI API anahtarı             | -                                   |
-| `QDRANT_URL`        | Qdrant vektör veritabanı URL'si | `http://localhost:6333`             |
-| `QDRANT_COLLECTION` | Qdrant koleksiyon adı           | `ai_logs`                           |
-| `PORT`              | Sunucu portu                    | `3000`                              |
-| `NODE_ENV`          | Çalışma ortamı                  | `development`                       |
-| `MONGODB_URI`       | MongoDB bağlantı URL'si         | `mongodb://localhost:27017/ai_logs` |
+-   **POST /api/query**: AI sorgusu gönderme (vektör veritabanı ile geliştirilmiş, kullanıcı seçenekleriyle)
+-   **GET /api/history**: Geçmiş sorguları getirme
+-   **POST /api/feedback**: Yanıt için kullanıcı feedback'i kaydetme
+-   **POST /api/mark-training**: Log'u eğitim örneği olarak işaretleme
+-   **GET /api/training-examples**: Eğitim örneklerini listeleme
+-   **GET /api/vectors/list**: Vektör veritabanı kayıtlarını listeleme
 
 ## 🔧 Özellikler
 
--   ✅ MVC mimarisi
--   ✅ Hata yönetimi
--   ✅ İstek loglama
--   ✅ Pagination desteği
--   ✅ Graceful shutdown
--   ✅ Environment variable desteği
--   ✅ Input validation
--   ✅ Error handling middleware
--   ✅ Modern responsive UI
--   ✅ AI service configuration
--   ✅ **Qdrant vektör veritabanı entegrasyonu**
--   ✅ **OpenAI embedding servisi**
--   ✅ **Benzer sorgu analizi**
--   ✅ **Geliştirilmiş prompt oluşturma**
--   ✅ **Docker Compose desteği**
--   ✅ **Llama 3.2 model desteği**
--   ✅ **Model seçici UI**
--   ✅ **Otomatik model kaydetme**
+-   Modern, responsive ve şeffaf chat arayüzü
+-   Gelişmiş RAG mimarisi (vektör + keyword arama, örnek özetleme, prompt mühendisliği)
+-   Kullanıcıya yanıt stili, formatı ve uzunluğu seçme imkanı
+-   Her yanıtın altında kaynak gösterimi ve otomatik değerlendirme
+-   Feedback ve eğitim verisi yönetimi
+-   Kod, tablo ve madde işaretleri için zengin format desteği
+-   Llama 3.2 ve Phi-3 model desteği
+-   Docker ve environment variable desteği
 
 ## 🛠️ Teknolojiler
 
@@ -231,89 +182,12 @@ POST /api/populate-vectors
 -   **Vektör Veritabanı**: Qdrant
 -   **AI Servisi**: Ollama (Llama 3.2, Phi-3)
 -   **Embedding**: OpenAI Embeddings
--   **Frontend**: HTML, CSS, JavaScript
--   **Environment**: dotenv
+-   **Frontend**: HTML, CSS, Vue.js
 -   **Containerization**: Docker, Docker Compose
-
-## 🔍 Vektör Veritabanı Özellikleri
-
-### Nasıl Çalışır?
-
-1. **Embedding Oluşturma**: Her sorgu ve yanıt OpenAI embedding API'si ile vektöre çevrilir
-2. **Benzerlik Arama**: Yeni sorgu geldiğinde, geçmiş benzer sorgular bulunur
-3. **Context Oluşturma**: Benzer örnekler kullanılarak geliştirilmiş prompt oluşturulur
-4. **Eğitilmiş Yanıt**: AI servisi daha zengin context ile yanıt üretir
-
-### Avantajlar
-
--   **Daha Kaliteli Yanıtlar**: Geçmiş örneklerden öğrenme
--   **Tutarlılık**: Benzer sorgulara benzer yanıtlar
--   **Sürekli İyileşme**: Her yeni sorgu sistemi geliştirir
--   **Hızlı Arama**: Vektör benzerlik araması
-
-## 📝 Geliştirme
-
-Proje modüler yapıda tasarlanmıştır. Yeni özellikler eklemek için:
-
-1. Model oluşturun (`models/`)
-2. Controller ekleyin (`controllers/`)
-3. Route tanımlayın (`routes/`)
-4. Gerekirse middleware ekleyin (`middleware/`)
-
-## 🔒 Güvenlik
-
--   Environment variables kullanarak hassas bilgileri koruyun
--   Production ortamında güvenli MongoDB URI kullanın
--   AI servis URL'sini environment variable'da saklayın
--   OpenAI API anahtarını güvenli şekilde saklayın
-
-## 🐳 Docker Kullanımı
-
-### Servisleri Başlatma
-
-```bash
-docker-compose up -d
-```
-
-### Servisleri Durdurma
-
-```bash
-docker-compose down
-```
-
-### Logları Görüntüleme
-
-```bash
-docker-compose logs -f
-```
-
-## 🚀 Performans Optimizasyonu
-
-### Model Seçimi Rehberi
-
-1. **Geliştirme/Test**: `llama3.2:3b` veya `phi3:mini`
-2. **Production (4GB RAM)**: `llama3.2:7b`
-3. **Yüksek Kalite (40GB RAM)**: `llama3.2:70b`
-4. **Hızlı İşlem**: `phi3:small`
-
-### RAM Gereksinimleri
-
--   **Minimum**: 2GB (3B model için)
--   **Önerilen**: 8GB (7B model + sistem)
--   **Yüksek Kalite**: 40GB+ (70B model için)
 
 ## 🎯 Sonuç
 
-**Llama 3.2** modelleri projeniz için en uygun seçenektir çünkü:
-
-✅ **Mevcut altyapınızla uyumlu** (Ollama)  
-✅ **Yerel çalışma** (API anahtarı gerektirmez)  
-✅ **Maliyet etkin** (ücretsiz)  
-✅ **Ölçeklenebilir** (farklı model boyutları)  
-✅ **Güvenli** (veri gizliliği)  
-✅ **Hızlı** (yerel işlem)
-
-Projeniz artık tam işlevsel, modern ve Llama destekli bir AI asistan uygulamasıdır! 🎉
+Bu uygulama, modern AI chat deneyimi, gelişmiş arama ve şeffaflık özellikleriyle öne çıkar. Hem teknik hem de kullanıcı deneyimi açısından güncel en iyi uygulamaları bir araya getirir.
 
 # LLM Model Seçimi ve Karşılaştırması
 

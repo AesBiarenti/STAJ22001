@@ -34,6 +34,11 @@ createApp({
 
             // Mobil sidebar
             sidebarOpen: false,
+
+            selectedStyle: "detaylı ve anlaşılır",
+            selectedFormat: "zengin",
+            selectedLength: "detaylı",
+            feedbackGivenIndexes: [], // Hangi mesajlara feedback verildi
         };
     },
 
@@ -65,6 +70,9 @@ createApp({
                     body: JSON.stringify({
                         prompt: userMessage,
                         model: this.selectedModel,
+                        style: this.selectedStyle,
+                        format: this.selectedFormat,
+                        length: this.selectedLength,
                     }),
                 });
 
@@ -77,8 +85,13 @@ createApp({
                 this.messages.push({
                     sender: "bot",
                     content: this.escapeHTML(data.reply || "Yanıt alınamadı."),
+                    meta: {
+                        similarExamples: data.similarExamples || [],
+                        selfCheck: data.selfCheck || "",
+                        logId: data.logId || null,
+                        feedbackGiven: false,
+                    },
                 });
-
                 this.loadHistory(); // Geçmişi güncelle
             } catch (error) {
                 this.messages.push({
@@ -313,9 +326,9 @@ createApp({
             notification.className = `notification ${type}`;
             notification.textContent = message;
             notification.style.cssText = `
-                position: fixed;
-                top: 20px;
-                right: 20px;
+        position: fixed;
+        top: 20px;
+        right: 20px;
                 background: ${
                     type === "success"
                         ? "#28a745"
@@ -323,18 +336,37 @@ createApp({
                         ? "#dc3545"
                         : "#17a2b8"
                 };
-                color: white;
+        color: white;
                 padding: 1rem;
-                border-radius: 8px;
-                z-index: 1000;
+        border-radius: 8px;
+        z-index: 1000;
                 animation: slideIn 0.3s;
-            `;
+    `;
 
             document.body.appendChild(notification);
 
             setTimeout(() => {
                 notification.remove();
             }, 3000);
+        },
+
+        sendFeedback(type, logId, msgIndex) {
+            if (!logId) return;
+            fetch("/api/feedback", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ logId, feedback: type }),
+            })
+                .then((res) => res.json())
+                .then(() => {
+                    // Feedback verildiğini işaretle
+                    if (
+                        this.messages[msgIndex] &&
+                        this.messages[msgIndex].meta
+                    ) {
+                        this.messages[msgIndex].meta.feedbackGiven = true;
+                    }
+                });
         },
     },
 

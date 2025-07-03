@@ -5,6 +5,9 @@ const {
     getHistory,
     populateVectorDatabase,
     populateTrainingExamples,
+    setFeedback,
+    markAsTrainingExample,
+    getTrainingExamples,
 } = require("../controllers/aiController");
 const {
     LLAMA_MODELS,
@@ -19,6 +22,11 @@ router.get("/history", getHistory);
 router.post("/populate-vectors", populateVectorDatabase);
 
 router.post("/populate-training-examples", populateTrainingExamples);
+
+router.post("/feedback", setFeedback);
+
+router.post("/mark-training", markAsTrainingExample);
+router.get("/training-examples", getTrainingExamples);
 
 // Model yönetimi endpoint'leri
 router.get("/models", async (req, res) => {

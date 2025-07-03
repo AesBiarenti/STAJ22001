@@ -30,6 +30,19 @@ const LogSchema = new mongoose.Schema({
         type: Date,
         default: Date.now,
     },
+    category: {
+        type: String,
+        default: "weekly_work_hours",
+    },
+    feedback: {
+        type: String,
+        enum: [null, "like", "dislike", "improve"],
+        default: null,
+    },
+    isTrainingExample: {
+        type: Boolean,
+        default: false,
+    },
 });
 
 module.exports = mongoose.model("Log", LogSchema);

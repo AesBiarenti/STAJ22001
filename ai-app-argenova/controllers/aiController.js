@@ -14,10 +14,57 @@ const getEmbeddingService = () => {
     return embeddingService;
 };
 
-const processQuery = async (req, res) => {
-    const { prompt, logId } = req.body;
+// Basit soru ön işleme fonksiyonu
+const preprocessQuery = (query) => {
+    let cleaned = query.toLowerCase();
+    cleaned = cleaned.replace(/i̇/g, "i");
+    // Sadece harf, rakam, Türkçe karakter ve boşluk bırak
+    cleaned = cleaned.replace(/[^a-zA-Z0-9çğıöşüÇĞİÖŞÜ\s]/g, "");
+    cleaned = cleaned.replace(/\s+/g, " ").trim();
+    cleaned = cleaned.replace(/\bcalısma\b/g, "çalışma");
+    return cleaned;
+};
 
-    if (!prompt || prompt.trim().length === 0) {
+// Basit özetleyici fonksiyon (uzun context'i kısaltır)
+const summarizeContextSimple = (similarQueries, maxLength = 500) => {
+    let context = similarQueries
+        .map((q, i) => `Soru: ${q.prompt}\nYanıt: ${q.response}`)
+        .join("\n\n");
+    if (context.length > maxLength) {
+        context = context.substring(0, maxLength) + " ...";
+    }
+    return context;
+};
+
+// LLM tabanlı özetleyici fonksiyon
+const summarizeContextLLM = async (similarQueries) => {
+    if (!similarQueries || similarQueries.length === 0) return "";
+    const context = similarQueries
+        .map((q, i) => `Soru: ${q.prompt}\nYanıt: ${q.response}`)
+        .join("\n\n");
+    const prompt = `Aşağıda geçmişteki benzer soru-cevaplar var. Bunları 3-4 cümleyle özetle, en önemli noktaları ve örnek analiz yaklaşımlarını vurgula.\n\n${context}`;
+    try {
+        const aiResponse = await queryAI(prompt);
+        return aiResponse.choices?.[0]?.text?.trim() || context;
+    } catch (e) {
+        // Hata olursa basit özetleyiciye düş
+        return summarizeContextSimple(similarQueries);
+    }
+};
+
+const processQuery = async (req, res) => {
+    let { prompt, logId, role, style, format, length } = req.body;
+
+    // Rol, stil, format ve uzunluk için varsayılanlar
+    const selectedRole = role || "AI asistanı";
+    const selectedStyle = style || "detaylı ve anlaşılır";
+    const selectedFormat = format || "zengin";
+    const selectedLength = length || "detaylı";
+
+    // 1. Soru ön işleme (hem orijinal hem temizlenmişi sakla)
+    const cleanedPrompt = preprocessQuery(prompt);
+
+    if (!cleanedPrompt || cleanedPrompt.trim().length === 0) {
         return res.status(400).json({
             error: "Prompt alanı boş olamaz.",
         });
@@ -26,12 +73,37 @@ const processQuery = async (req, res) => {
     const start = Date.now();
 
     try {
-        const similarQueries = await findSimilarQueries(prompt);
-        const enhancedPrompt = createEnhancedPrompt(prompt, similarQueries);
+        // 2. Benzer sorguları bul (temizlenmiş prompt ile)
+        const similarQueries = await findSimilarQueries(cleanedPrompt);
+
+        // 3. Sonuçları özetle (önce LLM, hata olursa basit)
+        let summarizedContext = await summarizeContextLLM(similarQueries);
+
+        // 4. Gelişmiş prompt oluştur (rol, stil, format ve uzunluk ile)
+        const enhancedPrompt = createEnhancedPrompt(
+            cleanedPrompt,
+            summarizedContext,
+            selectedRole,
+            selectedStyle,
+            selectedFormat,
+            selectedLength
+        );
+
+        // 5. LLM'e gönder, yanıtı al
         const aiResponse = await queryAI(enhancedPrompt);
         const end = Date.now();
         const duration = (end - start) / 1000;
         const reply = aiResponse.choices?.[0]?.text || "Yanıt alınamadı.";
+
+        // 6. Yanıt sonrası otomatik değerlendirme (self-check)
+        const selfCheckPrompt = `\nAşağıda bir kullanıcı sorusu ve AI yanıtı var.\nYanıtı değerlendir: Açık mı, eksik mi, geliştirilmeli mi?\nKısa bir özetle ve gerekirse öneri ver.\n\nSoru: ${prompt}\nYanıt: ${reply}\n`;
+        let selfCheck = "";
+        try {
+            const selfCheckResponse = await queryAI(selfCheckPrompt);
+            selfCheck = selfCheckResponse.choices?.[0]?.text?.trim() || "";
+        } catch (e) {
+            selfCheck = "Otomatik değerlendirme yapılamadı.";
+        }
 
         let log;
         if (logId) {
@@ -66,10 +138,19 @@ const processQuery = async (req, res) => {
             success: true,
             logId: log._id,
             similarQueries: similarQueries.length,
+            similarExamples: similarQueries.map((q) => ({
+                prompt: q.prompt,
+                response: q.response,
+            })),
+            summarizedContext:
+                summarizedContext.length > 500
+                    ? summarizedContext.substring(0, 500) + "..."
+                    : summarizedContext,
             enhancedPrompt:
                 enhancedPrompt.length > 500
                     ? enhancedPrompt.substring(0, 500) + "..."
                     : enhancedPrompt,
+            selfCheck,
         });
     } catch (error) {
         console.error("AI işleme hatası:", error.message);
@@ -82,17 +163,55 @@ const processQuery = async (req, res) => {
 
 const findSimilarQueries = async (prompt) => {
     try {
-        // Önce vektör veritabanından benzer sorguları bul
+        // 1. Vektör araması
         const embedding = await getEmbeddingService().getEmbedding(prompt);
         const similarVectors = await qdrant.searchSimilar(embedding, 3);
 
-        const dbResults = similarVectors
+        let dbResults = similarVectors
             .filter((item) => item.score > 0.7)
             .map((item) => item.payload);
 
-        // Eğer vektör veritabanında yeterli sonuç yoksa, önceden eğitilmiş örnekleri kullan
+        // 2. Yetersizse, anahtar kelime araması (MongoDB)
         if (dbResults.length < 2) {
-            console.log("📚 Önceden eğitilmiş örnekler kullanılıyor...");
+            const thirtyDaysAgo = new Date(
+                Date.now() - 30 * 24 * 60 * 60 * 1000
+            );
+            const keywordResults = await Log.find({
+                "messages.content": {
+                    $regex: prompt.split(" ").slice(0, 3).join("|"),
+                    $options: "i",
+                },
+                createdAt: { $gte: thirtyDaysAgo },
+                category: "weekly_work_hours",
+            })
+                .sort({ createdAt: -1 })
+                .limit(3)
+                .lean();
+
+            // Her kayıttan ilk user-bot mesaj çiftini al
+            const keywordPairs = keywordResults
+                .map((log) => {
+                    const userMsg = log.messages.find(
+                        (m) => m.sender === "user"
+                    );
+                    const botMsg = log.messages.find((m) => m.sender === "bot");
+                    return userMsg && botMsg
+                        ? { prompt: userMsg.content, response: botMsg.content }
+                        : null;
+                })
+                .filter(Boolean);
+
+            // Tekrarları önle
+            dbResults = [
+                ...dbResults,
+                ...keywordPairs.filter(
+                    (pair) => !dbResults.some((d) => d.prompt === pair.prompt)
+                ),
+            ];
+        }
+
+        // 3. Hala yetersizse, eğitim örnekleriyle tamamla
+        if (dbResults.length < 2) {
             const trainingExamples = findBestTrainingExamples(prompt);
             return [...dbResults, ...trainingExamples];
         }
@@ -154,48 +273,33 @@ const findBestTrainingExamples = (prompt) => {
     }
 };
 
-const createEnhancedPrompt = (originalPrompt, similarQueries) => {
-    if (similarQueries.length === 0) {
-        return `Sen bir Türkçe AI asistanısın. Aşağıdaki haftalık çalışma verilerini analiz et ve Türkçe olarak yanıt ver.
-
-Çalışma verileri:
-${originalPrompt}
-
-Lütfen şu kriterlere göre analiz yap:
-1. Toplam çalışma süresini hesapla
-2. Günlük ortalama çalışma süresini belirle
-3. Güçlü yönleri ve gelişim alanlarını tespit et
-4. Sağlık ve verimlilik açısından değerlendir
-5. Somut öneriler sun
-
-Yanıtını Türkçe olarak, emoji ve formatlamayı kullanarak ver.`;
+const createEnhancedPrompt = (
+    originalPrompt,
+    context,
+    role,
+    style,
+    format,
+    length
+) => {
+    let roleText = `Sen bir ${role} olarak yanıt ver.`;
+    let styleText = `Yanıtını ${style} şekilde hazırla.`;
+    let formatText = "";
+    if (format === "madde")
+        formatText = "Yanıtı madde madde ve kısa paragraflarla ver.";
+    else if (format === "tablo")
+        formatText = "Yanıtı tablo halinde ve gerekirse madde madde ver.";
+    else if (format === "kod")
+        formatText = "Yanıtı kod bloğu ve açıklamalarla ver.";
+    else
+        formatText =
+            "Yanıtı zengin formatta, başlıklar, emoji ve madde işaretleriyle ver.";
+    let lengthText = "";
+    if (length === "kısa") lengthText = "Yanıtı kısa ve özet şekilde hazırla.";
+    else lengthText = "Yanıtı detaylı ve açıklayıcı şekilde hazırla.";
+    if (!context || context.length === 0) {
+        return `${roleText}\n${styleText}\n${formatText}\n${lengthText}\n\nAşağıdaki haftalık çalışma verilerini analiz et ve Türkçe olarak yanıt ver.\n\nÇalışma verileri:\n${originalPrompt}\n\nLütfen şu kriterlere göre analiz yap:\n1. Toplam çalışma süresini hesapla\n2. Günlük ortalama çalışma süresini belirle\n3. Güçlü yönleri ve gelişim alanlarını tespit et\n4. Sağlık ve verimlilik açısından değerlendir\n5. Somut öneriler sun\n\nYanıtını Türkçe olarak, emoji ve formatlamayı kullanarak ver.`;
     }
-
-    const context = similarQueries
-        .map((query, index) => {
-            return `📋 Örnek ${index + 1}:
-❓ Soru: ${query.prompt}
-💡 Yanıt: ${query.response}`;
-        })
-        .join("\n\n");
-
-    return `Sen bir Türkçe AI asistanısın. Aşağıdaki benzer örnekleri inceleyerek, verilen haftalık çalışma verilerini analiz et ve Türkçe olarak yanıt ver.
-
-${context}
-
-🎯 Şimdi bu örneklerdeki yaklaşımı, analiz kalitesini ve detay seviyesini kullanarak aşağıdaki verileri yorumla:
-
-Çalışma verileri:
-${originalPrompt}
-
-📊 Lütfen şu kriterlere göre analiz yap:
-1. Toplam çalışma süresini hesapla
-2. Günlük ortalama çalışma süresini belirle
-3. Güçlü yönleri ve gelişim alanlarını tespit et
-4. Sağlık ve verimlilik açısından değerlendir
-5. Somut öneriler sun
-
-💡 Önceki örneklerdeki analiz kalitesini, detay seviyesini ve Türkçe dil kullanımını koruyarak yanıt ver. Emoji ve formatlamayı kullan.`;
+    return `${roleText}\n${styleText}\n${formatText}\n${lengthText}\n\nAşağıdaki benzer örnekleri ve özetini inceleyerek, verilen haftalık çalışma verilerini analiz et ve Türkçe olarak yanıt ver.\n\n${context}\n\n🎯 Şimdi bu örneklerdeki yaklaşımı, analiz kalitesini ve detay seviyesini kullanarak aşağıdaki verileri yorumla:\n\nÇalışma verileri:\n${originalPrompt}\n\n📊 Lütfen şu kriterlere göre analiz yap:\n1. Toplam çalışma süresini hesapla\n2. Günlük ortalama çalışma süresini belirle\n3. Güçlü yönleri ve gelişim alanlarını tespit et\n4. Sağlık ve verimlilik açısından değerlendir\n5. Somut öneriler sun\n\n💡 Önceki örneklerdeki analiz kalitesini, detay seviyesini ve Türkçe dil kullanımını koruyarak yanıt ver. Emoji ve formatlamayı kullan.`;
 };
 
 const addToVectorDatabase = async (id, prompt, response) => {
@@ -210,6 +314,8 @@ const addToVectorDatabase = async (id, prompt, response) => {
             prompt: prompt,
             response: response,
             timestamp: new Date().toISOString(),
+            category: "weekly_work_hours",
+            type: "user_query",
         });
 
         console.log("✅ Vektör veritabanına eklendi:", id);
@@ -338,9 +444,53 @@ const populateTrainingExamples = async (req, res) => {
     }
 };
 
+const setFeedback = async (req, res) => {
+    const { logId, feedback } = req.body;
+    if (!logId || !["like", "dislike", "improve"].includes(feedback)) {
+        return res.status(400).json({ error: "Geçersiz parametre" });
+    }
+    try {
+        const log = await Log.findById(logId);
+        if (!log) return res.status(404).json({ error: "Kayıt bulunamadı" });
+        log.feedback = feedback;
+        await log.save();
+        res.json({ success: true });
+    } catch (e) {
+        res.status(500).json({ error: "Feedback kaydedilemedi" });
+    }
+};
+
+const markAsTrainingExample = async (req, res) => {
+    const { logId } = req.body;
+    if (!logId) return res.status(400).json({ error: "logId gerekli" });
+    try {
+        const log = await Log.findById(logId);
+        if (!log) return res.status(404).json({ error: "Kayıt bulunamadı" });
+        log.isTrainingExample = true;
+        await log.save();
+        res.json({ success: true });
+    } catch (e) {
+        res.status(500).json({ error: "İşaretleme başarısız" });
+    }
+};
+
+const getTrainingExamples = async (req, res) => {
+    try {
+        const examples = await Log.find({ isTrainingExample: true }).sort({
+            createdAt: -1,
+        });
+        res.json({ examples });
+    } catch (e) {
+        res.status(500).json({ error: "Eğitim örnekleri alınamadı" });
+    }
+};
+
 module.exports = {
     processQuery,
     getHistory,
     populateVectorDatabase,
     populateTrainingExamples,
+    setFeedback,
+    markAsTrainingExample,
+    getTrainingExamples,
 };
