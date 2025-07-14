@@ -1,0 +1,55 @@
+version: '3.8'
+
+services:
+  # Flask API
+  flask_api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: argenova_flask_api_dev
+    ports:
+      - "5000:5000"
+    environment:
+      - FLASK_ENV=development
+      - FLASK_DEBUG=1
+      - QDRANT_URL=http://qdrant:6333
+      - OLLAMA_URL=http://ollama:11434
+    volumes:
+      - .:/app
+    depends_on:
+      - qdrant
+      - ollama
+    networks:
+      - argenova_dev_network
+
+  # Qdrant Vector Database
+  qdrant:
+    image: qdrant/qdrant:latest
+    container_name: argenova_qdrant_dev
+    ports:
+      - "6333:6333"
+    volumes:
+      - qdrant_dev_data:/qdrant/storage
+    networks:
+      - argenova_dev_network
+
+  # Ollama AI Service
+  ollama:
+    image: ollama/ollama:latest
+    container_name: argenova_ollama_dev
+    ports:
+      - "11434:11434"
+    volumes:
+      - ollama_dev_data:/root/.ollama
+    environment:
+      - OLLAMA_HOST=0.0.0.0:11434
+    networks:
+      - argenova_dev_network
+
+volumes:
+  qdrant_dev_data:
+  ollama_dev_data:
+
+networks:
+  argenova_dev_network:
+    driver: bridge 

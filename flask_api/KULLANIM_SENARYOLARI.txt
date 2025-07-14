@@ -1,0 +1,262 @@
+===============================================================================
+                    ARGENOVA AI APP - KULLANIM SENARYOLARI
+===============================================================================
+
+Bu dosya, Argenova AI uygulamasının farklı ortamlarda nasıl çalıştırılacağını
+açıklar. Her senaryo için gerekli adımlar ve komutlar detaylı olarak
+belirtilmiştir.
+
+===============================================================================
+                           1. DEVELOPMENT (LOCAL FLASK)
+===============================================================================
+
+Bu senaryo, geliştirme ortamında Flask API'yi local olarak çalıştırmak için
+kullanılır. Qdrant ve Ollama servisleri Docker ile çalışır.
+
+ADIMLAR:
+1. Qdrant ve Ollama servislerini başlat:
+   ```bash
+   cd flask_api
+   docker-compose -f docker-compose.dev.yml up -d
+   ```
+
+2. Flask API'yi local olarak çalıştır:
+   ```bash
+   cd flask_api
+   python3 -m venv venv
+   source venv/bin/activate
+   pip install -r requirements.txt
+   python app.py
+   ```
+
+3. Flutter uygulamasını başlat:
+   ```bash
+   cd argenova_ai_app
+   ./scripts/run_flutter.sh
+   # Seçenek 1'i seç: Development (Local Flask API)
+   ```
+
+KONTROL NOKTALARI:
+- Flask API: http://localhost:3000/health
+- Qdrant: http://localhost:6333/dashboard
+- Ollama: http://localhost:11434
+
+AVANTAJLARI:
+- Hızlı geliştirme
+- Hot reload desteği
+- Debug kolaylığı
+- Düşük kaynak kullanımı
+
+===============================================================================
+                           2. DOCKER COMPOSE İLE
+===============================================================================
+
+Bu senaryo, tüm sistemi Docker container'ları ile çalıştırmak için
+kullanılır. En stabil ve izole çalışma ortamıdır.
+
+ADIMLAR:
+1. Tüm sistemi Docker ile başlat:
+   ```bash
+   cd flask_api
+   docker-compose up --build
+   ```
+
+2. Ollama modelini indir (gerekirse):
+   ```bash
+   docker exec -it argenova_ollama ollama pull llama2:7b
+   ```
+
+3. Flutter uygulamasını başlat:
+   ```bash
+   cd argenova_ai_app
+   ./scripts/run_flutter.sh
+   # Seçenek 3'ü seç: Docker Compose (Local Docker)
+   ```
+
+KONTROL NOKTALARI:
+- Flask API: http://localhost:3000/health
+- Qdrant: http://localhost:6333/dashboard
+- Ollama: http://localhost:11434
+- Nginx (opsiyonel): http://localhost:80
+
+AVANTAJLARI:
+- Tam izolasyon
+- Kolay deployment
+- Tutarlı ortam
+- Production'a yakın test
+
+DURDURMA:
+```bash
+docker-compose down
+```
+
+===============================================================================
+                               3. PRODUCTION
+===============================================================================
+
+Bu senaryo, uygulamayı production ortamında çalıştırmak için kullanılır.
+Nginx reverse proxy ile güvenlik ve performans optimizasyonu sağlar.
+
+ADIMLAR:
+1. Production docker-compose ile başlat:
+   ```bash
+   cd flask_api
+   docker-compose --profile production up -d
+   ```
+
+2. SSL sertifikalarını yapılandır (gerekirse):
+   ```bash
+   # SSL sertifikalarını ssl/ klasörüne yerleştir
+   # nginx.conf dosyasında SSL ayarlarını aktif et
+   ```
+
+3. Flutter uygulamasını production URL ile başlat:
+   ```bash
+   cd argenova_ai_app
+   ./scripts/run_flutter.sh
+   # Seçenek 2'yi seç: Production (Remote Flask API)
+   ```
+
+KONTROL NOKTALARI:
+- Nginx: http://your-domain.com
+- Flask API: http://your-domain.com/api
+- Qdrant: http://your-domain.com/qdrant/
+- Ollama: http://your-domain.com/ollama/
+
+GÜVENLİK AYARLARI:
+- Firewall kuralları
+- SSL/TLS sertifikaları
+- Rate limiting
+- CORS yapılandırması
+- Environment variables
+
+MONITORING:
+```bash
+# Logları izle
+docker-compose logs -f
+
+# Sistem durumu
+docker stats
+
+# Health check
+curl http://your-domain.com/health
+```
+
+===============================================================================
+                              NGINX KONFİGÜRASYONU
+===============================================================================
+
+Nginx reverse proxy, tüm servisleri tek bir domain altında birleştirir
+ve güvenlik sağlar.
+
+DOSYA: nginx.conf
+KONUM: flask_api/nginx.conf
+
+ÖZELLİKLER:
+- API endpoint'leri: /api/
+- Health check: /health
+- Qdrant proxy: /qdrant/
+- Ollama proxy: /ollama/
+- SSL desteği
+- Load balancing (gelecekte)
+
+AKTİF ETME:
+```bash
+# Production profile ile başlat
+docker-compose --profile production up -d
+```
+
+===============================================================================
+                              TROUBLESHOOTING
+===============================================================================
+
+YAYGIN SORUNLAR VE ÇÖZÜMLERİ:
+
+1. PORT ÇAKIŞMASI:
+   ```bash
+   # Tüm container'ları durdur
+   docker-compose down
+   docker ps -aq | xargs docker stop
+   docker ps -aq | xargs docker rm
+   ```
+
+2. OLLAMA MODEL İNDİRME HATASI:
+   ```bash
+   # Container'ı yeniden başlat
+   docker restart argenova_ollama
+   # Modeli tekrar indir
+   docker exec -it argenova_ollama ollama pull llama2:7b
+   ```
+
+3. QDRANT BAĞLANTI HATASI:
+   ```bash
+   # Collection'ı yeniden oluştur
+   curl -X PUT http://localhost:6333/collections/mesai
+   ```
+
+4. FLASK API HATASI:
+   ```bash
+   # Logları kontrol et
+   docker-compose logs flask_api
+   # Container'ı yeniden başlat
+   docker restart argenova_flask_api
+   ```
+
+5. FLUTTER BAĞLANTI HATASI:
+   - API URL'ini kontrol et
+   - CORS ayarlarını kontrol et
+   - Network bağlantısını test et
+
+===============================================================================
+                              PERFORMANS OPTİMİZASYONU
+===============================================================================
+
+1. DOCKER OPTİMİZASYONU:
+   - Multi-stage builds
+   - Layer caching
+   - Resource limits
+
+2. FLASK OPTİMİZASYONU:
+   - Gunicorn workers
+   - Connection pooling
+   - Caching
+
+3. QDRANT OPTİMİZASYONU:
+   - Index optimization
+   - Memory management
+   - Backup strategies
+
+4. OLLAMA OPTİMİZASYONU:
+   - Model quantization
+   - GPU acceleration
+   - Batch processing
+
+===============================================================================
+                              BACKUP VE RESTORE
+===============================================================================
+
+1. QDRANT VERİLERİ:
+   ```bash
+   # Backup
+   docker exec argenova_qdrant tar -czf /qdrant/storage/backup.tar.gz /qdrant/storage
+   docker cp argenova_qdrant:/qdrant/storage/backup.tar.gz ./backup/
+   
+   # Restore
+   docker cp ./backup/backup.tar.gz argenova_qdrant:/qdrant/storage/
+   docker exec argenova_qdrant tar -xzf /qdrant/storage/backup.tar.gz
+   ```
+
+2. OLLAMA MODELLERİ:
+   ```bash
+   # Backup
+   docker exec argenova_ollama ollama list
+   docker cp argenova_ollama:/root/.ollama/models ./backup/ollama_models
+   
+   # Restore
+   docker cp ./backup/ollama_models argenova_ollama:/root/.ollama/
+   ```
+
+===============================================================================
+                              GÜNCEL TARİH: 2025-07-11
+                              VERSİYON: 1.0.0
+=============================================================================== 
