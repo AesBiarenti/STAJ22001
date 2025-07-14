@@ -19,20 +19,35 @@ Proje artık **Llama 3.2** modellerini desteklemektedir. Kullanıcılar farklı 
 
 ### 🤖 **Desteklenen Modeller**
 
-| Model             | Boyut | RAM   | Hız    | Kalite | Önerilen Kullanım        |
-| ----------------- | ----- | ----- | ------ | ------ | ------------------------ |
-| **Llama 3.2 3B**  | 3B    | 2GB   | ⚡⚡⚡ | 🟡     | Hızlı testler, düşük RAM |
-| **Llama 3.2 7B**  | 7B    | 4GB   | ⚡⚡   | 🟢     | **Varsayılan - Dengeli** |
-| **Llama 3.2 70B** | 70B   | 40GB  | ⚡     | 🔴     | En yüksek kalite         |
-| **Phi-3 Mini**    | 3.8B  | 1.5GB | ⚡⚡⚡ | 🟡     | Çok hızlı                |
-| **Phi-3 Small**   | 7B    | 3GB   | ⚡⚡   | 🟢     | Hızlı ve kaliteli        |
+| Model             | Boyut | RAM   | Hız    | Kalite | Önerilen Kullanım              |
+| ----------------- | ----- | ----- | ------ | ------ | ------------------------------ |
+| **Llama 3**       | 8B    | 8GB   | ⚡⚡   | 🟢     | **Varsayılan - Yüksek kalite** |
+| **Llama 3.2 3B**  | 3B    | 2GB   | ⚡⚡⚡ | 🟡     | Hızlı testler, düşük RAM       |
+| **Llama 3.2 7B**  | 7B    | 4GB   | ⚡⚡   | 🟢     | Dengeli performans             |
+| **Llama 3.2 70B** | 70B   | 40GB  | ⚡     | 🔴     | En yüksek kalite               |
+| **Phi-3 Mini**    | 3.8B  | 1.5GB | ⚡⚡⚡ | 🟡     | Çok hızlı                      |
+| **Phi-3 Small**   | 7B    | 3GB   | ⚡⚡   | 🟢     | Hızlı ve kaliteli              |
+
+### 🔤 **Embedding Modelleri**
+
+| Model                 | Boyut | Vektör Boyutu | Hız    | Kalite |
+| --------------------- | ----- | ------------- | ------ | ------ | ------------------------ |
+| **all-minilm**        | 91MB  | 384           | ⚡⚡⚡ | 🟢     | **Varsayılan - Dengeli** |
+| **mxbai-embed-large** | 1.3GB | 1024          | ⚡⚡   | 🔴     | Yüksek kalite            |
 
 ### 📥 **Model Kurulumu**
 
 ```bash
-# Ollama'ya model indirme
+# Otomatik model kurulumu (önerilen)
+npm run setup:models
+
+# Manuel model indirme
+ollama pull llama3         # Varsayılan chat modeli
+ollama pull all-minilm     # Varsayılan embedding modeli
+
+# Diğer modeller
 ollama pull llama3.2:3b    # Hızlı model
-ollama pull llama3.2:7b    # Varsayılan model
+ollama pull llama3.2:7b    # Dengeli performans
 ollama pull llama3.2:70b   # Yüksek kalite (40GB RAM gerekli)
 ollama pull phi3:mini      # Çok hızlı
 ollama pull phi3:small     # Hızlı ve kaliteli
@@ -41,13 +56,13 @@ ollama pull phi3:small     # Hızlı ve kaliteli
 ollama list
 
 # Model bilgilerini görüntüle
-ollama show llama3.2:7b
+ollama show llama3
 ```
 
 ### 🎛️ **Model Seçimi**
 
 1. **Web Arayüzü**: Header'daki dropdown'dan model seçin
-2. **Environment Variable**: `.env` dosyasında `OLLAMA_MODEL=llama3.2:7b`
+2. **Environment Variable**: `.env` dosyasında `OLLAMA_CHAT_MODEL=llama3` ve `OLLAMA_EMBEDDING_MODEL=all-minilm`
 3. **Otomatik Kaydetme**: Seçilen model localStorage'da saklanır
 
 ## 🏗️ Proje Mimarisi
@@ -82,7 +97,20 @@ ai-app-argenova/
 
 ## 🚀 Kurulum ve Çalıştırma
 
-### 1. **Ollama Kurulumu**
+### 1. **Docker ile Kurulum (Önerilen)**
+
+```bash
+# Development ortamı
+npm run docker:dev
+
+# Production ortamı
+npm run docker:prod
+
+# Servisleri durdur
+npm run docker:down
+```
+
+### 2. **Manuel Ollama Kurulumu**
 
 ```bash
 # Ubuntu/Debian
@@ -91,61 +119,50 @@ curl -fsSL https://ollama.ai/install.sh | sh
 # Ollama servisini başlat
 ollama serve
 
-# İlk modeli indir
-ollama pull llama3.2:7b
+# Modelleri otomatik indir
+npm run setup:models
 ```
 
-### 2. **Docker Servislerini Başlatın**
+### 3. **Manuel Kurulum**
 
 ```bash
-docker-compose up -d
-```
-
-### 3. **Bağımlılıkları Yükleyin**
-
-```bash
+# Bağımlılıkları yükle
 npm install
+
+# Environment dosyasını oluştur
+cp env.example .env
+
+# .env dosyasını düzenle
+nano .env
 ```
 
-### 4. **Environment Variables Dosyasını Oluşturun**
-
-```bash
-cp .env.example .env
-```
-
-### 5. **.env Dosyasını Düzenleyin**
+### 4. **Environment Variables**
 
 ```env
-# AI Service Configuration
-AI_SERVICE_URL=http://localhost:11434/api
-AI_TEMPERATURE=0.7
-AI_MAX_TOKENS=512
+# Node.js Environment
+NODE_ENV=development
 
-# Ollama Model Configuration
-OLLAMA_MODEL=llama3.2:7b
-# Model seçenekleri:
-# - llama3.2:3b (Hızlı, hafif - 2GB RAM)
-# - llama3.2:7b (Dengeli - 4GB RAM)
-# - llama3.2:70b (En yüksek kalite - 40GB RAM)
-# - phi3:mini (Çok hızlı - 1.5GB RAM)
-# - phi3:small (Hızlı - 3GB RAM)
+# MongoDB Configuration
+MONGODB_URI=mongodb://localhost:27017/ai_logs
 
-# OpenAI Configuration (Embedding için)
-OPENAI_API_KEY=your_openai_api_key_here
-
-# QDRANT Vector Database Configuration
+# Qdrant Configuration
 QDRANT_URL=http://localhost:6333
 QDRANT_COLLECTION=ai_logs
 
+# Ollama Configuration
+OLLAMA_URL=http://localhost:11434/api
+OLLAMA_CHAT_MODEL=llama3
+OLLAMA_EMBEDDING_MODEL=all-minilm
+
+# AI Configuration
+AI_TEMPERATURE=0.7
+AI_MAX_TOKENS=512
+
 # Server Configuration
 PORT=3000
-NODE_ENV=development
-
-# Database Configuration
-MONGODB_URI=mongodb://localhost:27017/ai_logs
 ```
 
-### 6. **Uygulamayı Başlatın**
+### 5. **Uygulamayı Başlatın**
 
 ```bash
 # Production
@@ -153,6 +170,9 @@ npm start
 
 # Development (nodemon ile)
 npm run dev
+
+# Docker ile (önerilen)
+npm run docker:dev
 ```
 
 ## 📊 API Endpoint'leri (Özet)

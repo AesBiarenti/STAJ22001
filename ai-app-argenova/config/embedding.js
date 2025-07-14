@@ -2,12 +2,12 @@ const axios = require("axios");
 
 class EmbeddingService {
     constructor() {
-        this.baseURL = "http://localhost:11434/api";
-        this.model = "mxbai-embed-large";
+        this.baseURL = process.env.OLLAMA_URL || "http://localhost:11434/api";
+        this.model = process.env.OLLAMA_EMBEDDING_MODEL || "all-minilm";
         this.isAvailable = true;
 
         console.log("🔧 EmbeddingService başlatılıyor...");
-        console.log("🔄 MXBAI embedding sistemi aktif");
+        console.log(`🔄 ${this.model} embedding sistemi aktif`);
     }
 
     async getEmbedding(text) {
@@ -27,8 +27,8 @@ class EmbeddingService {
             );
             return response.data.embedding;
         } catch (error) {
-            console.error("❌ MXBAI embedding hatası:", error.message);
-            throw new Error("MXBAI embedding alınamadı");
+            console.error(`❌ ${this.model} embedding hatası:`, error.message);
+            throw new Error(`${this.model} embedding alınamadı`);
         }
     }
 
@@ -41,8 +41,8 @@ class EmbeddingService {
             }
             return embeddings;
         } catch (error) {
-            console.error("❌ MXBAI embeddings hatası:", error.message);
-            throw new Error("MXBAI embeddings alınamadı");
+            console.error(`❌ ${this.model} embeddings hatası:`, error.message);
+            throw new Error(`${this.model} embeddings alınamadı`);
         }
     }
 

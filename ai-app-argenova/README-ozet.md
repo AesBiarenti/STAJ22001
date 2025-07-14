@@ -1,6 +1,6 @@
 # AI Chat Uygulaması
 
-Merhaba! Bu projede, modern ve kullanıcı dostu bir AI chat uygulaması geliştirdim. Hem frontend hem de backend tarafında, güncel RAG (retrieval-augmented generation) mimarisini ve en iyi UX prensiplerini uyguladım. İşte bu uygulamanın öne çıkan yönleri ve nasıl çalıştığına dair kendi gözlemlerim:
+Bu projede, modern ve kullanıcı dostu bir AI chat uygulaması geliştirdim. Hem frontend hem de backend tarafında, güncel RAG (retrieval-augmented generation) mimarisini ve UX prensiplerini uyguladım. İşte bu uygulamanın öne çıkan yönleri ve nasıl çalıştığına dair kendi açıklamalarım:
 
 ---
 

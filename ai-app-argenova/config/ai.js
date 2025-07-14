@@ -2,6 +2,12 @@ const axios = require("axios");
 
 // Llama model seçenekleri
 const LLAMA_MODELS = {
+    llama3: {
+        name: "Llama 3",
+        description: "En son Llama modeli - yüksek kalite",
+        ram: "8GB",
+        speed: "Hızlı",
+    },
     "llama3.2:3b": {
         name: "Llama 3.2 3B",
         description: "Hızlı ve hafif, genel kullanım için ideal",
@@ -22,7 +28,7 @@ const LLAMA_MODELS = {
     },
     "phi3:mini": {
         name: "Phi-3 Mini",
-        description: "Mevcut model - çok hızlı ve hafif",
+        description: "Çok hızlı ve hafif",
         ram: "1.5GB",
         speed: "Çok hızlı",
     },
@@ -35,8 +41,8 @@ const LLAMA_MODELS = {
 };
 
 const AI_CONFIG = {
-    baseURL: "http://localhost:11434/api",
-    model: process.env.OLLAMA_MODEL || "llama3.2:7b", // Varsayılan olarak 7B model
+    baseURL: process.env.OLLAMA_URL || "http://localhost:11434/api",
+    model: process.env.OLLAMA_CHAT_MODEL || "llama3.2:3b", // Varsayılan olarak llama3.2:3b model
     defaultParams: {
         temperature: parseFloat(process.env.AI_TEMPERATURE) || 0.7,
         max_tokens: parseInt(process.env.AI_MAX_TOKENS) || 512,

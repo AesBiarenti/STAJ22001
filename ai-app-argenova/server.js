@@ -15,6 +15,11 @@ const aiRoutes = require("./routes/aiRoutes");
 const app = express();
 const PORT = process.env.PORT || 3000;
 
+// Proxy desteği (Nginx arkasında çalışırken)
+if (process.env.TRUST_PROXY === "true") {
+    app.set("trust proxy", true);
+}
+
 // Qdrant client'ı başlat
 const qdrant = new QdrantClient();
 

@@ -16,6 +16,9 @@ const getEmbeddingService = () => {
 
 // Basit soru ön işleme fonksiyonu
 const preprocessQuery = (query) => {
+    if (!query || typeof query !== "string") {
+        return "";
+    }
     let cleaned = query.toLowerCase();
     cleaned = cleaned.replace(/i̇/g, "i");
     // Sadece harf, rakam, Türkçe karakter ve boşluk bırak
@@ -485,6 +488,184 @@ const getTrainingExamples = async (req, res) => {
     }
 };
 
+// Mobil uygulamadaki gibi basit chat endpoint'i
+const simpleChat = async (req, res) => {
+    let { question } = req.body;
+
+    if (!question || typeof question !== "string") {
+        return res.status(400).json({
+            answer: "Soru alanı boş olamaz.",
+            success: false,
+            error: "EMPTY_QUESTION",
+        });
+    }
+
+    const start = Date.now();
+
+    try {
+        // Doğrudan Ollama API'ye gönder (mobil uygulamadaki gibi)
+        const turkishPrompt =
+            "Lütfen bundan sonra Türkçe cevap ver.\n" + question;
+        const aiResponse = await queryAI(turkishPrompt);
+        const end = Date.now();
+        const duration = (end - start) / 1000;
+        const answer = aiResponse.choices?.[0]?.text || "Yanıt alınamadı.";
+
+        // Basit log kaydı
+        const log = new Log({
+            messages: [
+                { sender: "user", content: question, createdAt: new Date() },
+                { sender: "bot", content: answer, createdAt: new Date() },
+            ],
+            duration,
+        });
+        await log.save();
+
+        res.json({
+            answer: answer,
+            success: true,
+            duration: duration,
+            logId: log._id,
+        });
+    } catch (error) {
+        console.error("AI işleme hatası:", error.message);
+        res.status(500).json({
+            answer: "AI yanıtı alınamadı.",
+            success: false,
+            error: error.message,
+        });
+    }
+};
+
+// Basit embedding endpoint'i (mobil uygulamadaki gibi)
+const simpleEmbedding = async (req, res) => {
+    let { text } = req.body;
+
+    if (!text || typeof text !== "string") {
+        return res.status(400).json({
+            embedding: [],
+            success: false,
+            error: "EMPTY_TEXT",
+        });
+    }
+
+    try {
+        const embedding = await getEmbeddingService().getEmbedding(text);
+
+        res.json({
+            embedding: embedding,
+            success: true,
+        });
+    } catch (error) {
+        console.error("Embedding hatası:", error.message);
+
+        // Fallback embedding (mobil uygulamadaki gibi)
+        const fallbackEmbedding = Array.from(
+            { length: 384 },
+            (_, i) => (i * 0.1) % 1.0
+        );
+
+        res.json({
+            embedding: fallbackEmbedding,
+            success: false,
+            error: "EMBEDDING_FALLBACK",
+        });
+    }
+};
+
+// Stream destekli chat endpoint'i
+const streamChat = async (req, res) => {
+    let { question } = req.body;
+    if (!question || typeof question !== "string") {
+        res.status(400).json({
+            answer: "Soru alanı boş olamaz.",
+            success: false,
+            error: "EMPTY_QUESTION",
+        });
+        return;
+    }
+    // Yanıtı anında gönderebilmek için header'ı ayarla
+    res.setHeader("Content-Type", "text/event-stream");
+    res.setHeader("Cache-Control", "no-cache");
+    res.setHeader("Connection", "keep-alive");
+    res.flushHeaders && res.flushHeaders();
+
+    const prompt = "Lütfen bundan sonra Türkçe cevap ver.\n" + question;
+    const axios = require("axios");
+    const ollamaUrl = process.env.OLLAMA_URL || "http://localhost:11434/api";
+    let fullAnswer = "";
+    try {
+        const response = await axios({
+            method: "post",
+            url: `${ollamaUrl}/generate`,
+            data: {
+                model: process.env.OLLAMA_CHAT_MODEL || "llama3.2:3b",
+                prompt: prompt,
+                temperature: parseFloat(process.env.AI_TEMPERATURE) || 0.7,
+                max_tokens: parseInt(process.env.AI_MAX_TOKENS) || 512,
+                stream: true,
+            },
+            responseType: "stream",
+            headers: { "Content-Type": "application/json" },
+            timeout: 300000,
+        });
+        response.data.on("data", (chunk) => {
+            try {
+                // Ollama stream'i JSON satır satır gönderir
+                const lines = chunk.toString().split("\n").filter(Boolean);
+                for (const line of lines) {
+                    const obj = JSON.parse(line);
+                    if (obj.response) {
+                        fullAnswer += obj.response;
+                        res.write(
+                            `data: ${JSON.stringify({
+                                token: obj.response,
+                            })}\n\n`
+                        );
+                    }
+                }
+            } catch (e) {
+                // JSON parse hatası olabilir, ignore
+            }
+        });
+        response.data.on("end", async () => {
+            // Sohbeti kaydet
+            const Log = require("../models/Log");
+            const log = new Log({
+                messages: [
+                    {
+                        sender: "user",
+                        content: question,
+                        createdAt: new Date(),
+                    },
+                    {
+                        sender: "bot",
+                        content: fullAnswer,
+                        createdAt: new Date(),
+                    },
+                ],
+                duration: 0,
+            });
+            await log.save();
+            res.write(
+                `data: ${JSON.stringify({ done: true, logId: log._id })}\n\n`
+            );
+            res.end();
+        });
+        response.data.on("error", (err) => {
+            res.write(
+                `data: ${JSON.stringify({ error: "AI stream hatası" })}\n\n`
+            );
+            res.end();
+        });
+    } catch (error) {
+        res.write(
+            `data: ${JSON.stringify({ error: "AI servisi başlatılamadı" })}\n\n`
+        );
+        res.end();
+    }
+};
+
 module.exports = {
     processQuery,
     getHistory,
@@ -493,4 +674,7 @@ module.exports = {
     setFeedback,
     markAsTrainingExample,
     getTrainingExamples,
+    simpleChat,
+    simpleEmbedding,
 };
+module.exports.streamChat = streamChat;

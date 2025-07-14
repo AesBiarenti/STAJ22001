@@ -14,7 +14,6 @@ createApp({
             ],
             newMessage: "",
             sending: false,
-            loading: false,
 
             // Model seçimi
             selectedModel: "llama3.2:7b",
@@ -61,18 +60,26 @@ createApp({
 
             this.newMessage = "";
             this.sending = true;
-            this.loading = true;
+
+            // Bot yanıt baloncuğunu hemen ekle (yazıyor durumu için)
+            const botMessageIndex = this.messages.length;
+            this.messages.push({
+                sender: "bot",
+                content:
+                    '<div class="typing-indicator"><i class="fas fa-circle"></i><i class="fas fa-circle"></i><i class="fas fa-circle"></i></div>',
+                isTyping: true,
+            });
+
+            this.$nextTick(() => {
+                this.scrollToBottom();
+            });
 
             try {
-                const response = await fetch("/api/query", {
+                const response = await fetch("/api/chat/stream", {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
                     body: JSON.stringify({
-                        prompt: userMessage,
-                        model: this.selectedModel,
-                        style: this.selectedStyle,
-                        format: this.selectedFormat,
-                        length: this.selectedLength,
+                        question: userMessage,
                     }),
                 });
 
@@ -81,26 +88,58 @@ createApp({
                     throw new Error(errorData.error || "Sunucu hatası");
                 }
 
-                const data = await response.json();
-                this.messages.push({
-                    sender: "bot",
-                    content: this.escapeHTML(data.reply || "Yanıt alınamadı."),
-                    meta: {
-                        similarExamples: data.similarExamples || [],
-                        selfCheck: data.selfCheck || "",
-                        logId: data.logId || null,
-                        feedbackGiven: false,
-                    },
-                });
+                // Stream okuma
+                const reader = response.body.getReader();
+                let botContent = "";
+                let decoder = new TextDecoder();
+                let done = false;
+                while (!done) {
+                    const { value, done: streamDone } = await reader.read();
+                    if (value) {
+                        const chunk = decoder.decode(value, { stream: true });
+                        // SSE formatı: data: {json}\n\n
+                        chunk.split("\n\n").forEach((part) => {
+                            if (part.startsWith("data: ")) {
+                                try {
+                                    const data = JSON.parse(
+                                        part.replace("data: ", "")
+                                    );
+                                    if (data.token) {
+                                        botContent += data.token;
+                                        this.messages[botMessageIndex] = {
+                                            sender: "bot",
+                                            content:
+                                                this.escapeHTML(botContent),
+                                            isTyping: true,
+                                        };
+                                    }
+                                    if (data.done) {
+                                        this.messages[
+                                            botMessageIndex
+                                        ].isTyping = false;
+                                    }
+                                    if (data.error) {
+                                        this.messages[botMessageIndex] = {
+                                            sender: "bot",
+                                            content: `Hata: ${data.error}`,
+                                        };
+                                    }
+                                } catch (e) {}
+                            }
+                        });
+                    }
+                    done = streamDone;
+                }
+                this.messages[botMessageIndex].isTyping = false;
                 this.loadHistory(); // Geçmişi güncelle
             } catch (error) {
-                this.messages.push({
+                // Hata durumunda yazıyor mesajını güncelle
+                this.messages[botMessageIndex] = {
                     sender: "bot",
                     content: `Hata: ${error.message}`,
-                });
+                };
             } finally {
                 this.sending = false;
-                this.loading = false;
                 this.$nextTick(() => {
                     this.scrollToBottom();
                 });
@@ -120,6 +159,12 @@ createApp({
 
         // Geçmiş sohbet yükle
         loadHistoryChat(log) {
+            // Log modelindeki messages array'inden user ve bot mesajlarını al
+            const userMessage = log.messages.find(
+                (msg) => msg.sender === "user"
+            );
+            const botMessage = log.messages.find((msg) => msg.sender === "bot");
+
             this.messages = [
                 {
                     sender: "bot",
@@ -128,11 +173,15 @@ createApp({
                 },
                 {
                     sender: "user",
-                    content: this.escapeHTML(log.prompt),
+                    content: this.escapeHTML(
+                        userMessage ? userMessage.content : "Mesaj bulunamadı"
+                    ),
                 },
                 {
                     sender: "bot",
-                    content: this.escapeHTML(log.response),
+                    content: this.escapeHTML(
+                        botMessage ? botMessage.content : "Yanıt bulunamadı"
+                    ),
                 },
             ];
         },
@@ -290,9 +339,11 @@ createApp({
         },
 
         // Metin kısaltma
-        truncateText(text, maxLength) {
-            if (text.length <= maxLength) return text;
-            return text.substring(0, maxLength) + "...";
+        truncateText(str, maxLength) {
+            if (!str) return "";
+            return str.length > maxLength
+                ? str.slice(0, maxLength) + "..."
+                : str;
         },
 
         // Tarih formatla

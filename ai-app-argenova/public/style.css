@@ -1293,3 +1293,60 @@ textarea:focus {
     border: 1px solid #ddd;
     padding: 0.5em 1em;
 }
+
+/* Yanıt süresi göstergesi */
+.response-time {
+    margin-top: 0.5rem;
+    padding: 0.5rem;
+    background: #f0f8ff;
+    color: #0066cc;
+    border-radius: 8px;
+    font-size: 0.85rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-weight: 500;
+}
+
+.response-time i {
+    color: #0066cc;
+}
+
+/* Yazıyor animasyonu */
+.typing-indicator {
+    display: flex;
+    gap: 0.3rem;
+    align-items: center;
+    padding: 0.5rem;
+}
+
+.typing-indicator i {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: #667eea;
+    animation: typing 1.4s infinite ease-in-out;
+}
+
+.typing-indicator i:nth-child(1) {
+    animation-delay: -0.32s;
+}
+
+.typing-indicator i:nth-child(2) {
+    animation-delay: -0.16s;
+}
+
+.typing-indicator i:nth-child(3) {
+    animation-delay: 0s;
+}
+
+@keyframes typing {
+    0%, 80%, 100% {
+        transform: scale(0.8);
+        opacity: 0.5;
+    }
+    40% {
+        transform: scale(1);
+        opacity: 1;
+    }
+}

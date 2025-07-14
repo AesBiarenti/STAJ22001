@@ -4,7 +4,7 @@ class QdrantClient {
     constructor() {
         this.baseURL = process.env.QDRANT_URL || "http://localhost:6333";
         this.collectionName = process.env.QDRANT_COLLECTION || "ai_logs";
-        this.vectorSize = 1024; // MXBAI embedding boyutu
+        this.vectorSize = 384; // all-minilm embedding boyutu
         this.client = axios.create({
             baseURL: this.baseURL,
             timeout: 10000,
@@ -23,6 +23,48 @@ class QdrantClient {
 
     async createCollection() {
         try {
+            // Önce koleksiyonun mevcut olup olmadığını kontrol et
+            const collectionInfo = await this.getCollectionInfo();
+
+            if (collectionInfo) {
+                if (
+                    collectionInfo.config &&
+                    collectionInfo.config.params &&
+                    collectionInfo.config.params.vectors &&
+                    typeof collectionInfo.config.params.vectors.size ===
+                        "number"
+                ) {
+                    const currentVectorSize =
+                        collectionInfo.config.params.vectors.size;
+                    if (currentVectorSize !== this.vectorSize) {
+                        console.log(
+                            `⚠️ Koleksiyon vector boyutu uyumsuz: ${currentVectorSize} vs ${this.vectorSize}`
+                        );
+                        console.log("🔄 Koleksiyon yeniden oluşturuluyor...");
+
+                        // Mevcut koleksiyonu sil
+                        await this.client.delete(
+                            `/collections/${this.collectionName}`
+                        );
+                        console.log("🗑️ Eski koleksiyon silindi");
+                    } else {
+                        console.log(
+                            "ℹ️ Qdrant koleksiyonu zaten mevcut:",
+                            this.collectionName
+                        );
+                        return true;
+                    }
+                } else {
+                    console.log(
+                        "Qdrant koleksiyonunda vector boyutu bilgisi bulunamadı, yeniden oluşturuluyor..."
+                    );
+                    // Mevcut koleksiyonu sil
+                    await this.client.delete(
+                        `/collections/${this.collectionName}`
+                    );
+                }
+            }
+
             const response = await this.client.put(
                 `/collections/${this.collectionName}`,
                 {
@@ -34,17 +76,11 @@ class QdrantClient {
             );
             console.log(
                 "✅ Qdrant koleksiyonu oluşturuldu:",
-                this.collectionName
+                this.collectionName,
+                `(vector size: ${this.vectorSize})`
             );
             return true;
         } catch (error) {
-            if (error.response?.status === 409) {
-                console.log(
-                    "ℹ️ Qdrant koleksiyonu zaten mevcut:",
-                    this.collectionName
-                );
-                return true;
-            }
             console.error(
                 "❌ Qdrant koleksiyonu oluşturulamadı:",
                 error.message

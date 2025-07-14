@@ -75,7 +75,7 @@
                                     <div v-else>
                                         <div v-for="(item, index) in history" :key="index" 
                                              class="history-item" @click="loadHistoryChat(item); sidebarOpen = false;">
-                                            <div class="history-prompt">{{ truncateText(item.prompt, 50) }}</div>
+                                            <div class="history-prompt">{{ truncateText(item.messages && item.messages.find(msg => msg.sender === 'user') ? item.messages.find(msg => msg.sender === 'user').content : 'Mesaj bulunamadı', 50) }}</div>
                                             <div class="history-meta">
                                                 <span><i class="fas fa-clock"></i> {{ item.duration.toFixed(2) }}s</span>
                                                 <span><i class="fas fa-calendar"></i> {{ formatDate(item.createdAt) }}</span>
@@ -130,12 +130,7 @@
         <!-- Main Chat Area -->
         <main class="chatgpt-main">
             <!-- Seçenekler Barı -->
-            <div class="chat-options">
-                <!-- <select v-model="selectedRole">
-                    <option>AI asistanı</option>
-                    <option>İK uzmanı</option>
-                    <option>Yazılım mühendisi</option>
-                </select> -->
+            <!-- <div class="chat-options">
                 <select v-model="selectedStyle">
                     <option>detaylı ve anlaşılır</option>
                     <option>teknik</option>
@@ -151,7 +146,7 @@
                     <option value="detaylı">Detaylı</option>
                     <option value="kısa">Kısa</option>
                 </select>
-            </div>
+            </div> -->
             <div class="chatgpt-messages" ref="chatMessages">
                 <div v-for="(message, index) in messages" :key="index" 
                      class="chatgpt-message" :class="message.sender">
@@ -159,6 +154,10 @@
                         <i :class="message.sender === 'user' ? 'fas fa-user' : 'fas fa-robot'"></i>
                     </div>
                     <div class="content" v-html="message.content"></div>
+                    <!-- Yanıt süresi -->
+                    <div v-if="message.sender === 'bot' && message.meta && message.meta.duration" class="response-time">
+                        <i class="fas fa-clock"></i> Yanıt süresi: {{ message.meta.duration.toFixed(2) }} saniye
+                    </div>
                     <!-- Bot yanıtıysa kaynaklar, selfCheck ve feedback -->
                     <template v-if="message.sender === 'bot' && message.meta">
                         <div v-if="message.meta.similarExamples && message.meta.similarExamples.length" class="similar-examples">
@@ -172,14 +171,14 @@
                         </div>
                         <div v-if="message.meta.selfCheck && message.meta.selfCheck !== 'Otomatik değerlendirme yapılamadı.'" class="self-check">
                             <i class="fas fa-check-circle"></i> {{ message.meta.selfCheck }}
-                        </div>
+                    </div>
                         <div class="feedback-buttons" v-if="message.meta.logId && !message.meta.feedbackGiven">
                             <button @click="sendFeedback('like', message.meta.logId, index)"><i class="fas fa-thumbs-up"></i></button>
                             <button @click="sendFeedback('dislike', message.meta.logId, index)"><i class="fas fa-thumbs-down"></i></button>
                         </div>
                         <div v-else-if="message.meta.feedbackGiven" class="feedback-thankyou">
                             <i class="fas fa-heart"></i> Teşekkürler!
-                        </div>
+                    </div>
                     </template>
                 </div>
             </div>
@@ -200,12 +199,6 @@
                 </div>
             </form>
         </main>
-        <div v-if="loading" class="loading-overlay">
-        <div class="loading-content">
-            <div class="spinner"></div>
-                <p>AI düşünüyor...</p>
-            </div>
-        </div>
     </div>
     <script src="script.js"></script>
 </body>
