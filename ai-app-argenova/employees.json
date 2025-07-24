@@ -1,0 +1,478 @@
+[
+  {
+    "isim": "musa",
+    "toplam_mesai": [
+      29,
+      21,
+      30,
+      22,
+      29,
+      28,
+      25,
+      25,
+      29,
+      32
+    ],
+    "tarih_araligi": [
+      "2025-07-07/2025-07-13",
+      "2025-07-14/2025-07-20",
+      "2025-07-21/2025-07-27",
+      "2025-07-28/2025-08-03",
+      "2025-08-04/2025-08-10",
+      "2025-08-11/2025-08-17",
+      "2025-08-18/2025-08-24",
+      "2025-08-25/2025-08-31",
+      "2025-09-01/2025-09-07",
+      "2025-09-08/2025-09-14"
+    ],
+    "gunluk_mesai": [
+      {
+        "pazartesi": 7,
+        "sali": 6,
+        "carsamba": 5,
+        "persembe": 6,
+        "cuma": 5,
+        "cumartesi": 0,
+        "pazar": 0
+      },
+      {
+        "pazartesi": 4,
+        "sali": 2,
+        "carsamba": 6,
+        "persembe": 2,
+        "cuma": 7,
+        "cumartesi": 0,
+        "pazar": 0
+      },
+      {
+        "pazartesi": 8,
+        "sali": 8,
+        "carsamba": 5,
+        "persembe": 7,
+        "cuma": 2,
+        "cumartesi": 0,
+        "pazar": 0
+      },
+      {
+        "pazartesi": 0,
+        "sali": 6,
+        "carsamba": 3,
+        "persembe": 6,
+        "cuma": 7,
+        "cumartesi": 0,
+        "pazar": 0
+      },
+      {
+        "pazartesi": 8,
+        "sali": 9,
+        "carsamba": 5,
+        "persembe": 2,
+        "cuma": 5,
+        "cumartesi": 0,
+        "pazar": 0
+      },
+      {
+        "pazartesi": 5,
+        "sali": 4,
+        "carsamba": 4,
+        "persembe": 9,
+        "cuma": 6,
+        "cumartesi": 0,
+        "pazar": 0
+      },
+      {
+        "pazartesi": 0,
+        "sali": 8,
+        "carsamba": 9,
+        "persembe": 5,
+        "cuma": 3,
+        "cumartesi": 0,
+        "pazar": 0
+      },
+      {
+        "pazartesi": 3,
+        "sali": 4,
+        "carsamba": 7,
+        "persembe": 9,
+        "cuma": 2,
+        "cumartesi": 0,
+        "pazar": 0
+      },
+      {
+        "pazartesi": 8,
+        "sali": 4,
+        "carsamba": 7,
+        "persembe": 8,
+        "cuma": 2,
+        "cumartesi": 0,
+        "pazar": 0
+      },
+      {
+        "pazartesi": 4,
+        "sali": 3,
+        "carsamba": 9,
+        "persembe": 8,
+        "cuma": 8,
+        "cumartesi": 0,
+        "pazar": 0
+      }
+    ]
+  },
+  {
+    "isim": "furkan",
+    "toplam_mesai": [
+      31,
+      11,
+      13,
+      27,
+      27,
+      18,
+      25,
+      30,
+      34,
+      18
+    ],
+    "tarih_araligi": [
+      "2025-07-07/2025-07-13",
+      "2025-07-14/2025-07-20",
+      "2025-07-21/2025-07-27",
+      "2025-07-28/2025-08-03",
+      "2025-08-04/2025-08-10",
+      "2025-08-11/2025-08-17",
+      "2025-08-18/2025-08-24",
+      "2025-08-25/2025-08-31",
+      "2025-09-01/2025-09-07",
+      "2025-09-08/2025-09-14"
+    ],
+    "gunluk_mesai": [
+      {
+        "pazartesi": 7,
+        "sali": 6,
+        "carsamba": 9,
+        "persembe": 0,
+        "cuma": 9,
+        "cumartesi": 0,
+        "pazar": 0
+      },
+      {
+        "pazartesi": 3,
+        "sali": 3,
+        "carsamba": 4,
+        "persembe": 1,
+        "cuma": 0,
+        "cumartesi": 0,
+        "pazar": 0
+      },
+      {
+        "pazartesi": 2,
+        "sali": 4,
+        "carsamba": 1,
+        "persembe": 2,
+        "cuma": 4,
+        "cumartesi": 0,
+        "pazar": 0
+      },
+      {
+        "pazartesi": 2,
+        "sali": 9,
+        "carsamba": 5,
+        "persembe": 6,
+        "cuma": 5,
+        "cumartesi": 0,
+        "pazar": 0
+      },
+      {
+        "pazartesi": 8,
+        "sali": 3,
+        "carsamba": 6,
+        "persembe": 8,
+        "cuma": 2,
+        "cumartesi": 0,
+        "pazar": 0
+      },
+      {
+        "pazartesi": 8,
+        "sali": 1,
+        "carsamba": 6,
+        "persembe": 1,
+        "cuma": 2,
+        "cumartesi": 0,
+        "pazar": 0
+      },
+      {
+        "pazartesi": 3,
+        "sali": 7,
+        "carsamba": 5,
+        "persembe": 3,
+        "cuma": 7,
+        "cumartesi": 0,
+        "pazar": 0
+      },
+      {
+        "pazartesi": 7,
+        "sali": 7,
+        "carsamba": 2,
+        "persembe": 8,
+        "cuma": 6,
+        "cumartesi": 0,
+        "pazar": 0
+      },
+      {
+        "pazartesi": 9,
+        "sali": 8,
+        "carsamba": 2,
+        "persembe": 8,
+        "cuma": 7,
+        "cumartesi": 0,
+        "pazar": 0
+      },
+      {
+        "pazartesi": 2,
+        "sali": 6,
+        "carsamba": 3,
+        "persembe": 2,
+        "cuma": 5,
+        "cumartesi": 0,
+        "pazar": 0
+      }
+    ]
+  },
+  {
+    "isim": "esra",
+    "toplam_mesai": [
+      11,
+      13,
+      26,
+      16,
+      19,
+      28,
+      19,
+      27,
+      20,
+      29
+    ],
+    "tarih_araligi": [
+      "2025-07-07/2025-07-13",
+      "2025-07-14/2025-07-20",
+      "2025-07-21/2025-07-27",
+      "2025-07-28/2025-08-03",
+      "2025-08-04/2025-08-10",
+      "2025-08-11/2025-08-17",
+      "2025-08-18/2025-08-24",
+      "2025-08-25/2025-08-31",
+      "2025-09-01/2025-09-07",
+      "2025-09-08/2025-09-14"
+    ],
+    "gunluk_mesai": [
+      {
+        "pazartesi": 0,
+        "sali": 3,
+        "carsamba": 4,
+        "persembe": 0,
+        "cuma": 4,
+        "cumartesi": 0,
+        "pazar": 0
+      },
+      {
+        "pazartesi": 2,
+        "sali": 2,
+        "carsamba": 5,
+        "persembe": 2,
+        "cuma": 2,
+        "cumartesi": 0,
+        "pazar": 0
+      },
+      {
+        "pazartesi": 7,
+        "sali": 4,
+        "carsamba": 9,
+        "persembe": 1,
+        "cuma": 5,
+        "cumartesi": 0,
+        "pazar": 0
+      },
+      {
+        "pazartesi": 3,
+        "sali": 5,
+        "carsamba": 5,
+        "persembe": 0,
+        "cuma": 3,
+        "cumartesi": 0,
+        "pazar": 0
+      },
+      {
+        "pazartesi": 3,
+        "sali": 2,
+        "carsamba": 3,
+        "persembe": 5,
+        "cuma": 6,
+        "cumartesi": 0,
+        "pazar": 0
+      },
+      {
+        "pazartesi": 9,
+        "sali": 3,
+        "carsamba": 1,
+        "persembe": 8,
+        "cuma": 7,
+        "cumartesi": 0,
+        "pazar": 0
+      },
+      {
+        "pazartesi": 7,
+        "sali": 4,
+        "carsamba": 8,
+        "persembe": 0,
+        "cuma": 0,
+        "cumartesi": 0,
+        "pazar": 0
+      },
+      {
+        "pazartesi": 7,
+        "sali": 8,
+        "carsamba": 7,
+        "persembe": 1,
+        "cuma": 4,
+        "cumartesi": 0,
+        "pazar": 0
+      },
+      {
+        "pazartesi": 6,
+        "sali": 2,
+        "carsamba": 7,
+        "persembe": 4,
+        "cuma": 1,
+        "cumartesi": 0,
+        "pazar": 0
+      },
+      {
+        "pazartesi": 6,
+        "sali": 9,
+        "carsamba": 3,
+        "persembe": 4,
+        "cuma": 7,
+        "cumartesi": 0,
+        "pazar": 0
+      }
+    ]
+  },
+  {
+    "isim": "ayşe",
+    "toplam_mesai": [
+      21,
+      22,
+      23,
+      25,
+      23,
+      23,
+      35,
+      22,
+      13,
+      10
+    ],
+    "tarih_araligi": [
+      "2025-07-07/2025-07-13",
+      "2025-07-14/2025-07-20",
+      "2025-07-21/2025-07-27",
+      "2025-07-28/2025-08-03",
+      "2025-08-04/2025-08-10",
+      "2025-08-11/2025-08-17",
+      "2025-08-18/2025-08-24",
+      "2025-08-25/2025-08-31",
+      "2025-09-01/2025-09-07",
+      "2025-09-08/2025-09-14"
+    ],
+    "gunluk_mesai": [
+      {
+        "pazartesi": 1,
+        "sali": 9,
+        "carsamba": 3,
+        "persembe": 8,
+        "cuma": 0,
+        "cumartesi": 0,
+        "pazar": 0
+      },
+      {
+        "pazartesi": 9,
+        "sali": 2,
+        "carsamba": 1,
+        "persembe": 5,
+        "cuma": 5,
+        "cumartesi": 0,
+        "pazar": 0
+      },
+      {
+        "pazartesi": 6,
+        "sali": 8,
+        "carsamba": 1,
+        "persembe": 8,
+        "cuma": 0,
+        "cumartesi": 0,
+        "pazar": 0
+      },
+      {
+        "pazartesi": 4,
+        "sali": 7,
+        "carsamba": 2,
+        "persembe": 3,
+        "cuma": 9,
+        "cumartesi": 0,
+        "pazar": 0
+      },
+      {
+        "pazartesi": 0,
+        "sali": 8,
+        "carsamba": 8,
+        "persembe": 4,
+        "cuma": 3,
+        "cumartesi": 0,
+        "pazar": 0
+      },
+      {
+        "pazartesi": 3,
+        "sali": 6,
+        "carsamba": 4,
+        "persembe": 9,
+        "cuma": 1,
+        "cumartesi": 0,
+        "pazar": 0
+      },
+      {
+        "pazartesi": 9,
+        "sali": 8,
+        "carsamba": 5,
+        "persembe": 4,
+        "cuma": 9,
+        "cumartesi": 0,
+        "pazar": 0
+      },
+      {
+        "pazartesi": 7,
+        "sali": 8,
+        "carsamba": 1,
+        "persembe": 5,
+        "cuma": 1,
+        "cumartesi": 0,
+        "pazar": 0
+      },
+      {
+        "pazartesi": 7,
+        "sali": 2,
+        "carsamba": 2,
+        "persembe": 2,
+        "cuma": 0,
+        "cumartesi": 0,
+        "pazar": 0
+      },
+      {
+        "pazartesi": 7,
+        "sali": 1,
+        "carsamba": 0,
+        "persembe": 1,
+        "cuma": 1,
+        "cumartesi": 0,
+        "pazar": 0
+      }
+    ]
+  }
+]

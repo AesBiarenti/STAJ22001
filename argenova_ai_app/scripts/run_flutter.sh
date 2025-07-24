@@ -15,8 +15,8 @@ read -p "Seçiminizi yapın (1-4): " choice
 case $choice in
     1)
         echo "🔧 Development mode başlatılıyor..."
-        echo "API URL: http://localhost:3000/api"
-        flutter run --dart-define=API_BASE_URL=http://localhost:3000/api
+        echo "API URL: http://10.0.2.2:5000/api"
+        flutter run --dart-define=API_BASE_URL=http://10.0.2.2:5000/api
         ;;
     2)
         echo "🌐 Production mode başlatılıyor..."
@@ -25,11 +25,11 @@ case $choice in
         ;;
     3)
         echo "🐳 Docker Compose mode başlatılıyor..."
-        echo "API URL: http://localhost:3000/api"
-        echo "Qdrant URL: http://localhost:6333"
+        echo "API URL: http://10.0.2.2:5000/api"
+        echo "Qdrant URL: http://10.0.2.2:6333"
         flutter run \
-            --dart-define=API_BASE_URL=http://localhost:3000/api \
-            --dart-define=QDRANT_URL=http://localhost:6333
+            --dart-define=API_BASE_URL=http://10.0.2.2:5000/api \
+            --dart-define=QDRANT_URL=http://10.0.2.2:6333
         ;;
     4)
         read -p "API URL'ini girin: " custom_url

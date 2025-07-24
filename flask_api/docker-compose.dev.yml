@@ -14,6 +14,7 @@ services:
       - FLASK_DEBUG=1
       - QDRANT_URL=http://qdrant:6333
       - OLLAMA_URL=http://ollama:11434
+      - AI_SERVICE_URL=http://192.168.2.191:11434
     volumes:
       - .:/app
     depends_on:

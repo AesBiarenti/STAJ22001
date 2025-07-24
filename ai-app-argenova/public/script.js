@@ -25,26 +25,23 @@ createApp({
             history: [],
             loadingHistory: false,
 
-            // Vektör veritabanı
-            vectors: [],
-            loadingVectors: false,
-            loadingTraining: false,
-            clearingVectors: false,
-
             // Mobil sidebar
             sidebarOpen: false,
 
             selectedStyle: "detaylı ve anlaşılır",
-            selectedFormat: "zengin",
             selectedLength: "detaylı",
             feedbackGivenIndexes: [], // Hangi mesajlara feedback verildi
+            selectedFile: null,
+            uploading: false,
+            uploadStatus: null,
+            employeeStats: null,
         };
     },
 
     mounted() {
         this.loadHistory();
-        this.loadVectors();
         this.loadSavedModel();
+        this.loadEmployeeStats();
     },
 
     methods: {
@@ -61,88 +58,46 @@ createApp({
             this.newMessage = "";
             this.sending = true;
 
-            // Bot yanıt baloncuğunu hemen ekle (yazıyor durumu için)
-            const botMessageIndex = this.messages.length;
-            this.messages.push({
-                sender: "bot",
-                content:
-                    '<div class="typing-indicator"><i class="fas fa-circle"></i><i class="fas fa-circle"></i><i class="fas fa-circle"></i></div>',
-                isTyping: true,
-            });
-
-            this.$nextTick(() => {
-                this.scrollToBottom();
-            });
-
             try {
-                const response = await fetch("/api/chat/stream", {
+                // Normal AI chat kullan
+                const response = await fetch("/api/chat", {
                     method: "POST",
-                    headers: { "Content-Type": "application/json" },
+                    headers: {
+                        "Content-Type": "application/json",
+                    },
                     body: JSON.stringify({
-                        question: userMessage,
+                        prompt: userMessage,
+                        model: this.selectedModel,
+                        style: this.selectedStyle,
+                        length: this.selectedLength,
                     }),
                 });
 
-                if (!response.ok) {
-                    const errorData = await response.json();
-                    throw new Error(errorData.error || "Sunucu hatası");
-                }
+                const data = await response.json();
 
-                // Stream okuma
-                const reader = response.body.getReader();
-                let botContent = "";
-                let decoder = new TextDecoder();
-                let done = false;
-                while (!done) {
-                    const { value, done: streamDone } = await reader.read();
-                    if (value) {
-                        const chunk = decoder.decode(value, { stream: true });
-                        // SSE formatı: data: {json}\n\n
-                        chunk.split("\n\n").forEach((part) => {
-                            if (part.startsWith("data: ")) {
-                                try {
-                                    const data = JSON.parse(
-                                        part.replace("data: ", "")
-                                    );
-                                    if (data.token) {
-                                        botContent += data.token;
-                                        this.messages[botMessageIndex] = {
-                                            sender: "bot",
-                                            content:
-                                                this.escapeHTML(botContent),
-                                            isTyping: true,
-                                        };
-                                    }
-                                    if (data.done) {
-                                        this.messages[
-                                            botMessageIndex
-                                        ].isTyping = false;
-                                    }
-                                    if (data.error) {
-                                        this.messages[botMessageIndex] = {
-                                            sender: "bot",
-                                            content: `Hata: ${data.error}`,
-                                        };
-                                    }
-                                } catch (e) {}
-                            }
-                        });
-                    }
-                    done = streamDone;
+                if (data.success) {
+                    this.messages.push({
+                        sender: "bot",
+                        content: this.escapeHTML(data.response),
+                        meta: {
+                            duration: data.duration || 0,
+                            logId: data.logId,
+                            similarExamples: data.similarExamples || [],
+                            selfCheck: data.selfCheck || null,
+                        },
+                    });
+                } else {
+                    throw new Error(data.error || "Yanıt alınamadı");
                 }
-                this.messages[botMessageIndex].isTyping = false;
-                this.loadHistory(); // Geçmişi güncelle
             } catch (error) {
-                // Hata durumunda yazıyor mesajını güncelle
-                this.messages[botMessageIndex] = {
+                console.error("Mesaj gönderme hatası:", error);
+                this.messages.push({
                     sender: "bot",
                     content: `Hata: ${error.message}`,
-                };
+                    meta: { error: true },
+                });
             } finally {
                 this.sending = false;
-                this.$nextTick(() => {
-                    this.scrollToBottom();
-                });
             }
         },
 
@@ -217,77 +172,103 @@ createApp({
             }
         },
 
-        // Vektörleri yükle
-        async loadVectors() {
-            this.loadingVectors = true;
-            try {
-                const response = await fetch("/api/vectors/list");
-                if (!response.ok) {
-                    throw new Error("Vektörler yüklenemedi");
-                }
-                const data = await response.json();
-                this.vectors = data.vectors || [];
-            } catch (error) {
-                console.error("Vektörler yüklenemedi:", error);
-            } finally {
-                this.loadingVectors = false;
+        // Çalışan verileri yönetimi
+        triggerFileUpload() {
+            this.$refs.fileInput.click();
+        },
+
+        handleFileSelect(event) {
+            const file = event.target.files[0];
+            if (file) {
+                this.selectedFile = file;
+                this.uploadStatus = null;
             }
         },
 
-        // Eğitim örneklerini yükle
-        async loadTrainingExamples() {
-            this.loadingTraining = true;
-            try {
-                const response = await fetch(
-                    "/api/populate-training-examples",
-                    {
-                        method: "POST",
-                    }
-                );
-
-                if (!response.ok) {
-                    throw new Error("Eğitim örnekleri yüklenemedi");
+        handleFileDrop(event) {
+            event.preventDefault();
+            const files = event.dataTransfer.files;
+            if (files.length > 0) {
+                const file = files[0];
+                if (
+                    file.type.includes("spreadsheet") ||
+                    file.name.endsWith(".xlsx") ||
+                    file.name.endsWith(".xls")
+                ) {
+                    this.selectedFile = file;
+                    this.uploadStatus = null;
+                } else {
+                    this.showNotification(
+                        "Sadece Excel dosyaları desteklenir",
+                        "error"
+                    );
                 }
-
-                const data = await response.json();
-                this.showNotification(
-                    `${
-                        data.addedCount || data.count || 0
-                    } eğitim örneği yüklendi`,
-                    "success"
-                );
-                this.loadVectors();
-            } catch (error) {
-                this.showNotification(`Hata: ${error.message}`, "error");
-            } finally {
-                this.loadingTraining = false;
             }
         },
 
-        // Vektörleri temizle
-        async clearVectors() {
-            if (
-                !confirm("Tüm vektörleri silmek istediğinizden emin misiniz?")
-            ) {
+        async uploadEmployeeData() {
+            if (!this.selectedFile) {
+                this.showNotification("Lütfen bir dosya seçin", "error");
                 return;
             }
 
-            this.clearingVectors = true;
+            this.uploading = true;
+            this.uploadStatus = null;
+
+            const formData = new FormData();
+            formData.append("file", this.selectedFile);
+
             try {
-                const response = await fetch("/api/vectors/clear", {
-                    method: "DELETE",
+                const response = await fetch("/api/upload-employees", {
+                    method: "POST",
+                    body: formData,
                 });
 
-                if (!response.ok) {
-                    throw new Error("Vektörler temizlenemedi");
-                }
+                const data = await response.json();
 
-                this.showNotification("Vektörler temizlendi", "success");
-                this.loadVectors();
+                if (data.success) {
+                    this.uploadStatus = {
+                        type: "success",
+                        message: `Veriler başarıyla yüklendi! ${data.totalEmployees} çalışan, ${data.totalRecords} kayıt işlendi.`,
+                    };
+                    this.selectedFile = null;
+                    this.$refs.fileInput.value = "";
+                    this.loadEmployeeStats();
+                    this.showNotification(
+                        "Çalışan verileri başarıyla yüklendi",
+                        "success"
+                    );
+                } else {
+                    this.uploadStatus = {
+                        type: "error",
+                        message: data.error || "Veri yükleme hatası",
+                    };
+                    this.showNotification(
+                        data.error || "Veri yükleme hatası",
+                        "error"
+                    );
+                }
             } catch (error) {
-                this.showNotification(`Hata: ${error.message}`, "error");
+                console.error("Dosya yükleme hatası:", error);
+                this.uploadStatus = {
+                    type: "error",
+                    message: "Dosya yükleme sırasında hata oluştu",
+                };
+                this.showNotification("Dosya yükleme hatası", "error");
             } finally {
-                this.clearingVectors = false;
+                this.uploading = false;
+            }
+        },
+
+        async loadEmployeeStats() {
+            try {
+                const response = await fetch("/api/employee-stats");
+                const data = await response.json();
+                if (data.success) {
+                    this.employeeStats = data.stats;
+                }
+            } catch (error) {
+                console.error("İstatistik yükleme hatası:", error);
             }
         },
 
@@ -400,25 +381,6 @@ createApp({
                 notification.remove();
             }, 3000);
         },
-
-        sendFeedback(type, logId, msgIndex) {
-            if (!logId) return;
-            fetch("/api/feedback", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ logId, feedback: type }),
-            })
-                .then((res) => res.json())
-                .then(() => {
-                    // Feedback verildiğini işaretle
-                    if (
-                        this.messages[msgIndex] &&
-                        this.messages[msgIndex].meta
-                    ) {
-                        this.messages[msgIndex].meta.feedbackGiven = true;
-                    }
-                });
-        },
     },
 
     watch: {
@@ -433,3 +395,32 @@ createApp({
         },
     },
 }).mount("#app");
+
+// Dinamik çalışan sıralama ve analiz fonksiyonu
+function analyzeEmployees(data) {
+    // Toplam mesaiye göre azdan çoğa sırala
+    const sirali = [...data].sort((a, b) => a.toplam_mesai - b.toplam_mesai);
+    console.log("Azdan çoğa çalışanlar:");
+    sirali.forEach((w, i) => {
+        console.log(
+            `${i + 1}. ${w.isim} - Toplam Mesai: ${w.toplam_mesai} saat`
+        );
+    });
+    // En az mesai yapan
+    const enAzMesaiYapan = sirali[0];
+    console.log(
+        `\nEn az mesai yapan: ${enAzMesaiYapan.isim} (${enAzMesaiYapan.toplam_mesai} saat)`
+    );
+    // Her çalışanın en az mesai yaptığı günü bul
+    sirali.forEach((worker) => {
+        const minGun = Math.min(...worker.gunluk_mesai_saatleri);
+        const minGunIndex = worker.gunluk_mesai_saatleri.indexOf(minGun) + 1;
+        console.log(
+            `${worker.isim} en az mesai yaptığı gün: ${minGun} saat (Gün: ${minGunIndex})`
+        );
+    });
+}
+
+// Örnek kullanım (data dışarıdan gelebilir)
+// analyzeEmployees(data);
+// data: API'den, dosyadan veya kullanıcıdan alınan çalışan verileri olmalı

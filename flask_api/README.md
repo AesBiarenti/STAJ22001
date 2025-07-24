@@ -1,137 +1,65 @@
-# Flask API - Argenova AI Backend
+# Argenova Flask API
 
-Bu proje, Flutter mobil uygulaması için AI destekli backend API'sidir.
+Bu backend, çalışan verileri ve AI chat için Qdrant vektör veritabanı ile entegre çalışan bir Flask API sunar.
 
 ## 🚀 Özellikler
 
--   **AI Chat**: Ollama/OpenAI ile sohbet
--   **Vector Search**: Qdrant ile semantic search
--   **Employee Management**: Çalışan CRUD işlemleri
--   **Embedding Generation**: Metin vektörizasyonu
+-   Çalışan verilerini Excel dosyasından yükleme
+-   Qdrant vektör veritabanı ile hızlı ve ölçeklenebilir analiz
+-   Chat endpoint'i ile çalışan verileri üzerinden AI yanıtı
+-   Sadece chat ve çalışan verileri yönetimi
+-   Docker ile kolay kurulum
 
-## 📋 Gereksinimler
-
--   Python 3.11+
--   Qdrant Vector Database
--   AI Service (Ollama/OpenAI)
-
-## 🛠️ Kurulum
-
-1. **Bağımlılıkları yükle:**
-
-```bash
-pip install -r requirements.txt
-```
-
-2. **Environment dosyasını oluştur:**
-
-```bash
-cp env.example .env
-# .env dosyasını düzenle
-```
-
-3. **Uygulamayı çalıştır:**
-
-```bash
-python app.py
-```
-
-## 🐳 Docker ile Çalıştırma
-
-```bash
-docker build -t flask-api .
-docker run -p 5000:5000 flask-api
-```
-
-## 📡 API Endpoints
-
-### Chat Endpoints
-
--   `POST /api/chat` - AI sohbet
--   `POST /api/embedding` - Embedding oluştur
--   `POST /api/chat/context` - Context-aware sohbet
-
-### Employee Endpoints
-
--   `GET /api/employees` - Tüm çalışanları listele
--   `POST /api/employees` - Çalışan ekle
--   `PUT /api/employees/:id` - Çalışan güncelle
--   `DELETE /api/employees/:id` - Çalışan sil
-
-### Health Check
-
--   `GET /health` - API durumu
-
-## 🔧 Konfigürasyon
-
-`.env` dosyasında şu değişkenleri ayarlayın:
-
-```env
-# Flask
-SECRET_KEY=your-secret-key
-FLASK_DEBUG=False
-PORT=5000
-
-# Qdrant
-QDRANT_URL=http://192.168.2.191:6333
-QDRANT_COLLECTION=mesai
-
-# AI Service
-AI_SERVICE_URL=http://165.232.134.134:8000
-AI_SERVICE_MODEL=text-embedding-ada-002
-
-# CORS
-CORS_ORIGINS=http://localhost:3000,http://localhost:8080
-```
-
-## 📁 Proje Yapısı
+## 🏗️ Proje Yapısı
 
 ```
 flask_api/
-├── app.py                 # Ana uygulama
-├── config/
-│   └── settings.py        # Konfigürasyon
-├── controllers/
-│   ├── chat_controller.py # Chat endpoints
-│   └── employee_controller.py # Employee endpoints
-├── models/
-│   └── employee.py        # Pydantic modelleri
-├── services/
-│   ├── ai_service.py      # AI servisi
-│   └── qdrant_service.py  # Qdrant servisi
-├── requirements.txt       # Python bağımlılıkları
-├── Dockerfile            # Docker yapılandırması
-└── README.md             # Bu dosya
+├── app.py              # Ana Flask uygulaması
+├── controllers/        # Chat ve çalışan yönetimi
+├── services/           # Qdrant ve AI servisleri
+├── models/             # Çalışan modeli
+├── config/             # Ayar dosyaları
+├── scripts/            # Yardımcı scriptler
+├── employees.json      # (Opsiyonel) Dışa aktarılan çalışan verisi
+├── requirements.txt    # Python bağımlılıkları
+├── docker-compose.yml  # Docker servisleri
+└── README.md           # Bu dosya
 ```
 
-## 🔍 Avantajlar
+## ⚡️ Kurulum
 
-### Node.js vs Flask Karşılaştırması
+1. Python 3.10+ kurulu olmalı
+2. Gerekli paketleri yükle:
+    ```bash
+    pip install -r requirements.txt
+    ```
+3. Uygulamayı başlat:
+    ```bash
+    python app.py
+    ```
 
-| Özellik                 | Node.js       | Flask            |
-| ----------------------- | ------------- | ---------------- |
-| **AI/ML Entegrasyonu**  | ⚠️ Orta       | ✅ Mükemmel      |
-| **Qdrant Entegrasyonu** | ⚠️ HTTP API   | ✅ Native Client |
-| **Type Safety**         | ⚠️ TypeScript | ✅ Pydantic      |
-| **Performance**         | ✅ Hızlı      | ✅ Hızlı         |
-| **Ecosystem**           | ✅ Geniş      | ✅ AI/ML Odaklı  |
+## 🔗 Qdrant ve AI Entegrasyonu
 
-## 🎯 Kullanım Senaryoları
+-   Qdrant vektör veritabanı ile çalışan verileri saklanır ve analiz edilir.
+-   AI yanıtları için Ollama/llama3 modeli ile entegrasyon yapılır.
 
-1. **Basit Sohbet**: Kullanıcı soru sorar, AI yanıt verir
-2. **Context-Aware Sohbet**: Çalışan verileri ile zenginleştirilmiş yanıt
-3. **Employee Management**: Admin çalışan ekler/düzenler/siler
+## 📦 Çalışan Verisi Yükleme
 
-## 🚨 Hata Yönetimi
+-   `/upload-employees` endpoint'i ile Excel dosyasından çalışan verisi yüklenebilir.
+-   Yüklenen veriler Qdrant'a kaydedilir.
 
--   **AI Service Down**: Fallback mesajları
--   **Qdrant Down**: Text-based search
--   **Network Issues**: Timeout handling
--   **Validation Errors**: Pydantic validation
+## 📝 Notlar
 
-## 📈 Monitoring
+-   Admin paneli, vektör sekmesi, format seçeneği ve beğen/beğenme gibi özellikler kaldırılmıştır.
+-   Sadece chat ve çalışan verileri yönetimi aktif olarak kullanılmaktadır.
 
--   Health check endpoint
--   Structured logging
--   Error tracking
--   Performance metrics
+## 🛠️ Teknolojiler
+
+-   Python 3
+-   Flask
+-   Qdrant
+-   Docker
+
+## 📄 Lisans
+
+MIT

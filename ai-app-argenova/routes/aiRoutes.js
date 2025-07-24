@@ -1,5 +1,8 @@
 const express = require("express");
 const router = express.Router();
+const multer = require("multer");
+const upload = multer({ dest: "uploads/" });
+
 const {
     processQuery,
     getHistory,
@@ -11,6 +14,10 @@ const {
     simpleChat,
     simpleEmbedding,
     streamChat,
+    uploadEmployees,
+    getEmployeeStats,
+    chatWithEmployees,
+    chatStream, // yeni eklenen
 } = require("../controllers/aiController");
 const {
     LLAMA_MODELS,
@@ -87,7 +94,7 @@ router.post("/query", processQuery);
 // Mobil uygulamadaki gibi basit endpoint'ler
 router.post("/chat", simpleChat);
 router.post("/embedding", simpleEmbedding);
-router.post("/chat/stream", streamChat);
+router.post("/chat/stream", chatStream);
 
 router.get("/history", getHistory);
 
@@ -189,5 +196,10 @@ router.delete("/vectors/clear", async (req, res) => {
         });
     }
 });
+
+// Çalışan verileri yönetimi endpoint'leri
+router.post("/upload-employees", upload.single("file"), uploadEmployees);
+router.get("/employee-stats", getEmployeeStats);
+router.post("/chat-employees", chatWithEmployees);
 
 module.exports = router;

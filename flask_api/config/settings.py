@@ -16,9 +16,9 @@ class Config:
     
     # AI Service Configuration
     # Production'da Ollama localhost'ta çalışacak
-    AI_SERVICE_URL = os.getenv('AI_SERVICE_URL', 'http://localhost:11434')
-    AI_SERVICE_MODEL = os.getenv('AI_SERVICE_MODEL', 'all-minilm')
-    AI_TIMEOUT = 180  # 3 dakika gibi yüksek bir değer ver
+    AI_SERVICE_URL = os.getenv('AI_SERVICE_URL', 'http://192.168.2.191:11434')
+    AI_SERVICE_MODEL = os.getenv('AI_SERVICE_MODEL', 'llama3')
+    AI_TIMEOUT = 300  # 5 dakika gibi bir değer ver
     
     # CORS Configuration
     CORS_ORIGINS = os.getenv('CORS_ORIGINS', 'http://localhost:3000,http://192.168.2.191:3000').split(',')
@@ -27,5 +27,7 @@ class Config:
     PORT = int(os.getenv('PORT', 5000))
     HOST = os.getenv('HOST', '0.0.0.0') 
 
+    # Embedding (vektör) modeli için varsayılan: all-minilm (Ollama'da yüklü olmalı)
     AI_EMBEDDING_MODEL = os.getenv('AI_EMBEDDING_MODEL', 'all-minilm')
+    # Chat (sohbet/generate) modeli için varsayılan: mistral:7b (Ollama'da yüklü olmalı)
     AI_CHAT_MODEL = os.getenv('AI_CHAT_MODEL', 'llama3') 

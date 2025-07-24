@@ -1,6 +1,9 @@
+import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:http/http.dart' as http;
 
+import '../../core/api/config.dart';
 import '../../core/api/qdrant_service.dart';
 import '../../core/widgets/custom_app_bar.dart';
 import '../../core/widgets/custom_card.dart';
@@ -14,55 +17,15 @@ class AdminScreen extends ConsumerStatefulWidget {
 
 class _AdminScreenState extends ConsumerState<AdminScreen>
     with SingleTickerProviderStateMixin {
-  final _formKey = GlobalKey<FormState>();
-  final _nameController = TextEditingController();
-  final _dateRangeController = TextEditingController();
-  final _totalHoursController = TextEditingController();
-  final _evaluationController = TextEditingController();
-
-  final Map<String, TextEditingController> _dailyHoursControllers = {
-    'pazartesi': TextEditingController(),
-    'sali': TextEditingController(),
-    'carsamba': TextEditingController(),
-    'persembe': TextEditingController(),
-    'cuma': TextEditingController(),
-    'cumartesi': TextEditingController(),
-    'pazar': TextEditingController(),
-  };
-
   List<Map<String, dynamic>> _employees = [];
   bool _loading = false;
-  int? _editingEmployeeId;
-  late TabController _tabController;
-  bool _hasNewEmployee = false;
+  String? _selectedFilePath;
+  String? _selectedFileName;
 
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 2, vsync: this);
-    _tabController.addListener(() {
-      setState(() {
-        // Tab değiştiğinde UI'ı güncelle
-      });
-      if (_tabController.index == 0 && _hasNewEmployee) {
-        setState(() {
-          _hasNewEmployee = false;
-        });
-      }
-    });
     _loadEmployees();
-  }
-
-  @override
-  void dispose() {
-    _tabController.dispose();
-    _nameController.dispose();
-    _dateRangeController.dispose();
-    _totalHoursController.dispose();
-    for (final controller in _dailyHoursControllers.values) {
-      controller.dispose();
-    }
-    super.dispose();
   }
 
   Future<void> _loadEmployees() async {
@@ -83,50 +46,6 @@ class _AdminScreenState extends ConsumerState<AdminScreen>
       print('📋 Çalışan yükleme hatası: $e');
       setState(() => _loading = false);
       _showSnackBar('Veriler yüklenirken hata: $e');
-    }
-  }
-
-  Future<void> _addEmployee() async {
-    if (!_formKey.currentState!.validate()) return;
-
-    setState(() => _loading = true);
-    try {
-      final qdrant = QdrantService();
-
-      // Günlük mesai verilerini topla (tüm günler dahil)
-      final dailyHours = <String, int>{};
-      for (final entry in _dailyHoursControllers.entries) {
-        final hours = int.tryParse(entry.value.text) ?? 0;
-        dailyHours[entry.key] = hours; // 0 da olsa ekle
-      }
-
-      // Toplam mesaiyi 7 gün üzerinden hesapla
-      final totalHours = dailyHours.values.fold(0, (a, b) => a + b);
-
-      final employeeData = {
-        'isim': _nameController.text.trim(),
-        'tarih_araligi': _dateRangeController.text.trim(),
-        'toplam_mesai': totalHours,
-        'gunluk_mesai': dailyHours,
-      };
-
-      final success = await qdrant.addEmployee(employeeData);
-
-      if (success) {
-        _showSnackBar('Çalışan başarıyla eklendi');
-        _clearForm();
-        _loadEmployees();
-        setState(() {
-          _hasNewEmployee = true;
-        });
-        _tabController.animateTo(0); // Otomatik olarak listeye geç
-      } else {
-        _showSnackBar('Çalışan eklenirken hata oluştu');
-      }
-    } catch (e) {
-      _showSnackBar('Hata: $e');
-    } finally {
-      setState(() => _loading = false);
     }
   }
 
@@ -178,69 +97,6 @@ class _AdminScreenState extends ConsumerState<AdminScreen>
     }
   }
 
-  void _startEditEmployee(Map<String, dynamic> employee) {
-    setState(() {
-      _editingEmployeeId = employee['id'];
-      _nameController.text = employee['isim'] ?? '';
-      _dateRangeController.text = employee['tarih_araligi'] ?? '';
-      _totalHoursController.text = (employee['toplam_mesai'] ?? '').toString();
-      final gunluk = employee['gunluk_mesai'] as Map<String, dynamic>? ?? {};
-      for (final key in _dailyHoursControllers.keys) {
-        _dailyHoursControllers[key]?.text = (gunluk[key] ?? '').toString();
-      }
-    });
-  }
-
-  Future<void> _saveEditEmployee() async {
-    if (!_formKey.currentState!.validate() || _editingEmployeeId == null)
-      return;
-    setState(() => _loading = true);
-    try {
-      final qdrant = QdrantService();
-      final dailyHours = <String, int>{};
-      for (final entry in _dailyHoursControllers.entries) {
-        final hours = int.tryParse(entry.value.text) ?? 0;
-        dailyHours[entry.key] = hours; // 0 da olsa ekle
-      }
-      // Toplam mesaiyi 7 gün üzerinden hesapla
-      final totalHours = dailyHours.values.fold(0, (a, b) => a + b);
-      final employeeData = {
-        'isim': _nameController.text.trim(),
-        'tarih_araligi': _dateRangeController.text.trim(),
-        'toplam_mesai': totalHours,
-        'gunluk_mesai': dailyHours,
-      };
-      final success = await qdrant.updateEmployee(
-        _editingEmployeeId!,
-        employeeData,
-      );
-      if (success) {
-        _showSnackBar('Çalışan güncellendi');
-        _clearForm();
-        _editingEmployeeId = null;
-        _loadEmployees();
-      } else {
-        _showSnackBar('Çalışan güncellenirken hata oluştu');
-      }
-    } catch (e) {
-      _showSnackBar('Hata: $e');
-    } finally {
-      setState(() => _loading = false);
-    }
-  }
-
-  void _clearForm() {
-    _formKey.currentState?.reset();
-    _nameController.clear();
-    _dateRangeController.clear();
-    _totalHoursController.clear();
-    _evaluationController.clear();
-    for (final controller in _dailyHoursControllers.values) {
-      controller.clear();
-    }
-    _editingEmployeeId = null;
-  }
-
   void _showSnackBar(String message) {
     ScaffoldMessenger.of(
       context,
@@ -260,149 +116,157 @@ class _AdminScreenState extends ConsumerState<AdminScreen>
         : Colors.black.withOpacity(0.05);
   }
 
+  Future<void> _pickExcelFile() async {
+    FilePickerResult? result = await FilePicker.platform.pickFiles(
+      type: FileType.custom,
+      allowedExtensions: ['xlsx'],
+    );
+    if (result != null && result.files.single.path != null) {
+      setState(() {
+        _selectedFilePath = result.files.single.path;
+        _selectedFileName = result.files.single.name;
+      });
+      _showSnackBar('Dosya seçildi: $_selectedFileName');
+    } else {
+      setState(() {
+        _selectedFilePath = null;
+        _selectedFileName = null;
+      });
+      _showSnackBar('Dosya seçilmedi');
+    }
+  }
+
+  Future<void> _uploadEmployeesFromExcel() async {
+    setState(() => _loading = true);
+    try {
+      if (_selectedFilePath == null) {
+        _showSnackBar('Lütfen önce bir dosya seçin');
+        setState(() => _loading = false);
+        return;
+      }
+      var uri = Uri.parse('${ApiConfig.apiBaseUrl}/upload-employees');
+      var request = http.MultipartRequest('POST', uri)
+        ..files.add(
+          await http.MultipartFile.fromPath('file', _selectedFilePath!),
+        );
+
+      var response = await request.send();
+
+      if (response.statusCode == 200) {
+        _showSnackBar('Excel dosyasından çalışanlar başarıyla yüklendi');
+        setState(() {
+          _selectedFilePath = null;
+          _selectedFileName = null;
+        });
+        _loadEmployees(); // Listeyi güncelle
+      } else {
+        _showSnackBar('Yükleme başarısız: ${response.statusCode}');
+      }
+    } catch (e) {
+      _showSnackBar('Hata: $e');
+    } finally {
+      setState(() => _loading = false);
+    }
+  }
+
+  Future<void> _deleteAllEmployees() async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Tüm Çalışanları Sil'),
+        content: const Text(
+          'Tüm çalışanları silmek istediğinizden emin misiniz? Bu işlem geri alınamaz.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('İptal'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Tümünü Sil'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true) return;
+    setState(() => _loading = true);
+    try {
+      final uri = Uri.parse('${ApiConfig.apiBaseUrl}/employees/all');
+      final response = await http.delete(uri);
+      if (response.statusCode == 200) {
+        _showSnackBar('Tüm çalışanlar silindi');
+        _loadEmployees();
+      } else {
+        _showSnackBar('Toplu silme başarısız: ${response.statusCode}');
+      }
+    } catch (e) {
+      _showSnackBar('Hata: $e');
+    } finally {
+      setState(() => _loading = false);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: const CustomAppBar(title: 'Admin Paneli'),
       body: Column(
         children: [
-          // Güzelleştirilmiş TabBar
-          Container(
-            margin: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                colors: [
-                  Theme.of(context).primaryColor.withOpacity(0.1),
-                  Theme.of(context).primaryColor.withOpacity(0.05),
-                ],
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-              ),
-              borderRadius: BorderRadius.circular(16),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withOpacity(0.1),
-                  blurRadius: 10,
-                  offset: const Offset(0, 4),
-                ),
-              ],
-            ),
-            child: TabBar(
-              controller: _tabController,
-              labelColor: Colors.white,
-              unselectedLabelColor:
-                  Theme.of(context).brightness == Brightness.dark
-                  ? Colors.white.withOpacity(0.7)
-                  : Theme.of(context).primaryColor.withOpacity(0.7),
-              indicator: BoxDecoration(
-                gradient: LinearGradient(
-                  colors: [
-                    Theme.of(context).primaryColor,
-                    Theme.of(context).primaryColor.withOpacity(0.8),
-                  ],
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                ),
-                borderRadius: BorderRadius.circular(12),
-                boxShadow: [
-                  BoxShadow(
-                    color: Theme.of(context).primaryColor.withOpacity(0.3),
-                    blurRadius: 8,
-                    offset: const Offset(0, 2),
-                  ),
-                ],
-              ),
-              indicatorSize: TabBarIndicatorSize.tab,
-              dividerColor: Colors.transparent,
-              padding: const EdgeInsets.all(4),
-              labelStyle: const TextStyle(
-                fontSize: 14,
-                fontWeight: FontWeight.w600,
-                letterSpacing: 0.5,
-              ),
-              unselectedLabelStyle: const TextStyle(
-                fontSize: 14,
-                fontWeight: FontWeight.w500,
-                letterSpacing: 0.5,
-              ),
-              tabs: [
-                Tab(
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(
-                        Icons.people_alt_rounded,
-                        size: 20,
-                        color: _tabController.index == 0
-                            ? Colors.white
-                            : (Theme.of(context).brightness == Brightness.dark
-                                  ? Colors.white.withOpacity(0.7)
-                                  : Theme.of(
-                                      context,
-                                    ).primaryColor.withOpacity(0.7)),
-                      ),
-                      const SizedBox(width: 8),
-                      const Text('Çalışanlar'),
-                      if (_hasNewEmployee)
-                        Container(
-                          margin: const EdgeInsets.only(left: 6),
-                          padding: const EdgeInsets.all(2),
-                          decoration: BoxDecoration(
-                            color: Colors.red,
-                            borderRadius: BorderRadius.circular(10),
-                            boxShadow: [
-                              BoxShadow(
-                                color: Colors.red.withOpacity(0.3),
-                                blurRadius: 4,
-                                offset: const Offset(0, 1),
-                              ),
-                            ],
-                          ),
-                          child: const Icon(
-                            Icons.fiber_manual_record,
-                            color: Colors.white,
-                            size: 8,
-                          ),
-                        ),
-                    ],
-                  ),
-                ),
-                Tab(
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(
-                        _editingEmployeeId == null
-                            ? Icons.person_add_rounded
-                            : Icons.edit_rounded,
-                        size: 20,
-                        color: _tabController.index == 1
-                            ? Colors.white
-                            : (Theme.of(context).brightness == Brightness.dark
-                                  ? Colors.white.withOpacity(0.7)
-                                  : Theme.of(
-                                      context,
-                                    ).primaryColor.withOpacity(0.7)),
-                      ),
-                      const SizedBox(width: 8),
-                      Text(_editingEmployeeId == null ? 'Ekle' : 'Düzenle'),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-          ),
-          Expanded(
-            child: TabBarView(
-              controller: _tabController,
+          Padding(
+            padding: const EdgeInsets.all(8.0),
+            child: Row(
               children: [
-                // Çalışan Listesi Sekmesi
-                _buildEmployeeList(),
-                // Çalışan Ekle/Düzenle Sekmesi
-                _buildEmployeeForm(),
+                Expanded(
+                  child: ElevatedButton.icon(
+                    icon: Icon(Icons.file_open),
+                    label: Text('Dosya Seç'),
+                    onPressed: _loading ? null : _pickExcelFile,
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: ElevatedButton.icon(
+                    icon: Icon(Icons.upload_file),
+                    label: Text('Aktar'),
+                    onPressed: _loading ? null : _uploadEmployeesFromExcel,
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: ElevatedButton.icon(
+                    icon: Icon(Icons.delete_forever),
+                    label: Text('Tümünü Sil'),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.red,
+                    ),
+                    onPressed: _loading ? null : _deleteAllEmployees,
+                  ),
+                ),
               ],
             ),
           ),
+          if (_selectedFileName != null)
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+              child: Row(
+                children: [
+                  Icon(Icons.insert_drive_file, color: Colors.blueGrey),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      _selectedFileName!,
+                      style: const TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w500,
+                      ),
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          Expanded(child: _buildEmployeeList()),
         ],
       ),
     );
@@ -567,11 +431,23 @@ class _AdminScreenState extends ConsumerState<AdminScreen>
                                           color: Colors.grey.withOpacity(0.7),
                                         ),
                                         const SizedBox(width: 4),
-                                        Text(
-                                          '${employee['toplam_mesai']} saat',
-                                          style: TextStyle(
-                                            color: Colors.grey.withOpacity(0.7),
-                                            fontSize: 13,
+                                        Expanded(
+                                          child: Text(
+                                            (employee['toplam_mesai'] is List)
+                                                ? (employee['toplam_mesai']
+                                                          as List)
+                                                      .join(', ')
+                                                : (employee['toplam_mesai']
+                                                          ?.toString() ??
+                                                      ''),
+                                            style: TextStyle(
+                                              color: Colors.grey.withOpacity(
+                                                0.7,
+                                              ),
+                                              fontSize: 13,
+                                            ),
+                                            overflow: TextOverflow.ellipsis,
+                                            maxLines: 1,
                                           ),
                                         ),
                                       ],
@@ -587,7 +463,13 @@ class _AdminScreenState extends ConsumerState<AdminScreen>
                                         const SizedBox(width: 4),
                                         Expanded(
                                           child: Text(
-                                            employee['tarih_araligi'] ?? '',
+                                            (employee['tarih_araligi'] is List)
+                                                ? (employee['tarih_araligi']
+                                                          as List)
+                                                      .join(', ')
+                                                : (employee['tarih_araligi']
+                                                          ?.toString() ??
+                                                      ''),
                                             style: TextStyle(
                                               color: Colors.grey.withOpacity(
                                                 0.7,
@@ -595,6 +477,7 @@ class _AdminScreenState extends ConsumerState<AdminScreen>
                                               fontSize: 13,
                                             ),
                                             overflow: TextOverflow.ellipsis,
+                                            maxLines: 1,
                                           ),
                                         ),
                                       ],
@@ -604,24 +487,6 @@ class _AdminScreenState extends ConsumerState<AdminScreen>
                                 trailing: Row(
                                   mainAxisSize: MainAxisSize.min,
                                   children: [
-                                    Container(
-                                      decoration: BoxDecoration(
-                                        color: Colors.blue.withOpacity(0.1),
-                                        borderRadius: BorderRadius.circular(8),
-                                      ),
-                                      child: IconButton(
-                                        icon: const Icon(
-                                          Icons.edit_rounded,
-                                          color: Colors.blue,
-                                          size: 20,
-                                        ),
-                                        onPressed: () {
-                                          _startEditEmployee(employee);
-                                          _tabController.animateTo(1);
-                                        },
-                                      ),
-                                    ),
-                                    const SizedBox(width: 8),
                                     Container(
                                       decoration: BoxDecoration(
                                         color: Colors.red.withOpacity(0.1),
@@ -650,543 +515,6 @@ class _AdminScreenState extends ConsumerState<AdminScreen>
               ],
             ),
           );
-  }
-
-  Widget _buildEmployeeForm() {
-    return SingleChildScrollView(
-      padding: const EdgeInsets.all(16),
-      child: CustomCard(
-        child: Form(
-          key: _formKey,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                children: [
-                  Icon(
-                    _editingEmployeeId == null
-                        ? Icons.person_add_rounded
-                        : Icons.edit_rounded,
-                    color: Theme.of(context).primaryColor,
-                    size: 24,
-                  ),
-                  const SizedBox(width: 8),
-                  Text(
-                    _editingEmployeeId == null
-                        ? 'Yeni Çalışan Ekle'
-                        : 'Çalışan Düzenle',
-                    style: const TextStyle(
-                      fontSize: 20,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  if (_editingEmployeeId != null) ...[
-                    const Spacer(),
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 8,
-                        vertical: 4,
-                      ),
-                      decoration: BoxDecoration(
-                        color: Colors.orange.withOpacity(0.1),
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: const Text(
-                        'Düzenleme Modu',
-                        style: TextStyle(
-                          color: Colors.orange,
-                          fontSize: 12,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                    ),
-                  ],
-                ],
-              ),
-              const SizedBox(height: 16),
-              Container(
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(12),
-                  boxShadow: [
-                    BoxShadow(
-                      color: _getShadowColor(),
-                      blurRadius: 4,
-                      offset: const Offset(0, 2),
-                    ),
-                  ],
-                ),
-                child: TextFormField(
-                  controller: _nameController,
-                  decoration: InputDecoration(
-                    labelText: 'İsim',
-                    prefixIcon: const Icon(Icons.person_rounded),
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    focusedBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                      borderSide: BorderSide(
-                        color: Theme.of(context).primaryColor,
-                        width: 2,
-                      ),
-                    ),
-                    filled: true,
-                    fillColor: _getFillColor(),
-                  ),
-                  validator: (value) {
-                    if (value?.trim().isEmpty ?? true) {
-                      return 'İsim gerekli';
-                    }
-                    return null;
-                  },
-                ),
-              ),
-              const SizedBox(height: 16),
-              Container(
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(12),
-                  boxShadow: [
-                    BoxShadow(
-                      color: _getShadowColor(),
-                      blurRadius: 4,
-                      offset: const Offset(0, 2),
-                    ),
-                  ],
-                ),
-                child: TextFormField(
-                  controller: _dateRangeController,
-                  readOnly: true,
-                  decoration: InputDecoration(
-                    labelText: 'Tarih Aralığı',
-                    hintText: 'örn: 2024-07-01/2024-07-07',
-                    prefixIcon: const Icon(Icons.calendar_today_rounded),
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    focusedBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                      borderSide: BorderSide(
-                        color: Theme.of(context).primaryColor,
-                        width: 2,
-                      ),
-                    ),
-                    filled: true,
-                    fillColor: _getFillColor(),
-                  ),
-                  onTap: () async {
-                    final now = DateTime.now();
-                    final picked = await showDateRangePicker(
-                      context: context,
-                      firstDate: DateTime(now.year - 2),
-                      lastDate: DateTime(now.year + 2),
-                      initialDateRange: _dateRangeController.text.isNotEmpty
-                          ? _parseDateRange(_dateRangeController.text)
-                          : null,
-                    );
-                    if (picked != null) {
-                      final start = picked.start;
-                      final end = picked.end;
-                      final formatted =
-                          '${_formatDate(start)}/${_formatDate(end)}';
-                      setState(() {
-                        _dateRangeController.text = formatted;
-                      });
-                    }
-                  },
-                  validator: (value) {
-                    if (value?.trim().isEmpty ?? true) {
-                      return 'Tarih aralığı gerekli';
-                    }
-                    return null;
-                  },
-                ),
-              ),
-              // Toplam saat otomatik göster
-              Padding(
-                padding: const EdgeInsets.symmetric(vertical: 8.0),
-                child: Row(
-                  children: [
-                    Icon(
-                      Icons.access_time_rounded,
-                      color: Theme.of(context).primaryColor,
-                      size: 20,
-                    ),
-                    const SizedBox(width: 8),
-                    const Text(
-                      'Toplam Mesai:',
-                      style: TextStyle(
-                        fontWeight: FontWeight.bold,
-                        fontSize: 16,
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    Builder(
-                      builder: (context) {
-                        int toplam = 0;
-                        for (final controller
-                            in _dailyHoursControllers.values) {
-                          toplam += int.tryParse(controller.text) ?? 0;
-                        }
-                        return Text(
-                          '$toplam saat',
-                          style: const TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        );
-                      },
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 16),
-              Row(
-                children: [
-                  Icon(
-                    Icons.schedule_rounded,
-                    color: Theme.of(context).primaryColor,
-                    size: 20,
-                  ),
-                  const SizedBox(width: 8),
-                  const Text(
-                    'Günlük Mesai (saat)',
-                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 12),
-              Row(
-                children: [
-                  Expanded(
-                    child: Container(
-                      decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(12),
-                        boxShadow: [
-                          BoxShadow(
-                            color: _getShadowColor(),
-                            blurRadius: 4,
-                            offset: const Offset(0, 2),
-                          ),
-                        ],
-                      ),
-                      child: TextFormField(
-                        controller: _dailyHoursControllers['pazartesi'],
-                        decoration: InputDecoration(
-                          labelText: 'Pazartesi',
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          focusedBorder: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(12),
-                            borderSide: BorderSide(
-                              color: Theme.of(context).primaryColor,
-                              width: 2,
-                            ),
-                          ),
-                          filled: true,
-                          fillColor: _getFillColor(),
-                        ),
-                        keyboardType: TextInputType.number,
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Container(
-                      decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(12),
-                        boxShadow: [
-                          BoxShadow(
-                            color: _getShadowColor(),
-                            blurRadius: 4,
-                            offset: const Offset(0, 2),
-                          ),
-                        ],
-                      ),
-                      child: TextFormField(
-                        controller: _dailyHoursControllers['sali'],
-                        decoration: InputDecoration(
-                          labelText: 'Salı',
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          focusedBorder: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(12),
-                            borderSide: BorderSide(
-                              color: Theme.of(context).primaryColor,
-                              width: 2,
-                            ),
-                          ),
-                          filled: true,
-                          fillColor: _getFillColor(),
-                        ),
-                        keyboardType: TextInputType.number,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 12),
-              Row(
-                children: [
-                  Expanded(
-                    child: Container(
-                      decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(12),
-                        boxShadow: [
-                          BoxShadow(
-                            color: _getShadowColor(),
-                            blurRadius: 4,
-                            offset: const Offset(0, 2),
-                          ),
-                        ],
-                      ),
-                      child: TextFormField(
-                        controller: _dailyHoursControllers['carsamba'],
-                        decoration: InputDecoration(
-                          labelText: 'Çarşamba',
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          focusedBorder: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(12),
-                            borderSide: BorderSide(
-                              color: Theme.of(context).primaryColor,
-                              width: 2,
-                            ),
-                          ),
-                          filled: true,
-                          fillColor: _getFillColor(),
-                        ),
-                        keyboardType: TextInputType.number,
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Container(
-                      decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(12),
-                        boxShadow: [
-                          BoxShadow(
-                            color: _getShadowColor(),
-                            blurRadius: 4,
-                            offset: const Offset(0, 2),
-                          ),
-                        ],
-                      ),
-                      child: TextFormField(
-                        controller: _dailyHoursControllers['persembe'],
-                        decoration: InputDecoration(
-                          labelText: 'Perşembe',
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          focusedBorder: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(12),
-                            borderSide: BorderSide(
-                              color: Theme.of(context).primaryColor,
-                              width: 2,
-                            ),
-                          ),
-                          filled: true,
-                          fillColor: _getFillColor(),
-                        ),
-                        keyboardType: TextInputType.number,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 12),
-              Row(
-                children: [
-                  Expanded(
-                    child: Container(
-                      decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(12),
-                        boxShadow: [
-                          BoxShadow(
-                            color: _getShadowColor(),
-                            blurRadius: 4,
-                            offset: const Offset(0, 2),
-                          ),
-                        ],
-                      ),
-                      child: TextFormField(
-                        controller: _dailyHoursControllers['cuma'],
-                        decoration: InputDecoration(
-                          labelText: 'Cuma',
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          focusedBorder: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(12),
-                            borderSide: BorderSide(
-                              color: Theme.of(context).primaryColor,
-                              width: 2,
-                            ),
-                          ),
-                          filled: true,
-                          fillColor: _getFillColor(),
-                        ),
-                        keyboardType: TextInputType.number,
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Container(
-                      decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(12),
-                        boxShadow: [
-                          BoxShadow(
-                            color: _getShadowColor(),
-                            blurRadius: 4,
-                            offset: const Offset(0, 2),
-                          ),
-                        ],
-                      ),
-                      child: TextFormField(
-                        controller: _dailyHoursControllers['cumartesi'],
-                        decoration: InputDecoration(
-                          labelText: 'Cumartesi',
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          focusedBorder: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(12),
-                            borderSide: BorderSide(
-                              color: Theme.of(context).primaryColor,
-                              width: 2,
-                            ),
-                          ),
-                          filled: true,
-                          fillColor: _getFillColor(),
-                        ),
-                        keyboardType: TextInputType.number,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 12),
-              Row(
-                children: [
-                  Expanded(
-                    child: Container(
-                      decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(12),
-                        boxShadow: [
-                          BoxShadow(
-                            color: _getShadowColor(),
-                            blurRadius: 4,
-                            offset: const Offset(0, 2),
-                          ),
-                        ],
-                      ),
-                      child: TextFormField(
-                        controller: _dailyHoursControllers['pazar'],
-                        decoration: InputDecoration(
-                          labelText: 'Pazar',
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          focusedBorder: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(12),
-                            borderSide: BorderSide(
-                              color: Theme.of(context).primaryColor,
-                              width: 2,
-                            ),
-                          ),
-                          filled: true,
-                          fillColor: _getFillColor(),
-                        ),
-                        keyboardType: TextInputType.number,
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(child: Container()),
-                ],
-              ),
-              const SizedBox(height: 24),
-              Container(
-                width: double.infinity,
-                height: 56,
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    colors: [
-                      Theme.of(context).primaryColor,
-                      Theme.of(context).primaryColor.withOpacity(0.8),
-                    ],
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                  ),
-                  borderRadius: BorderRadius.circular(16),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Theme.of(context).primaryColor.withOpacity(0.3),
-                      blurRadius: 8,
-                      offset: const Offset(0, 4),
-                    ),
-                  ],
-                ),
-                child: Material(
-                  color: Colors.transparent,
-                  child: InkWell(
-                    borderRadius: BorderRadius.circular(16),
-                    onTap: _loading
-                        ? null
-                        : () {
-                            if (_editingEmployeeId == null) {
-                              _addEmployee();
-                            } else {
-                              _saveEditEmployee();
-                            }
-                          },
-                    child: Center(
-                      child: _loading
-                          ? const SizedBox(
-                              width: 24,
-                              height: 24,
-                              child: CircularProgressIndicator(
-                                color: Colors.white,
-                                strokeWidth: 2,
-                              ),
-                            )
-                          : Row(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                Icon(
-                                  _editingEmployeeId == null
-                                      ? Icons.person_add_rounded
-                                      : Icons.save_rounded,
-                                  color: Colors.white,
-                                  size: 20,
-                                ),
-                                const SizedBox(width: 8),
-                                Text(
-                                  _editingEmployeeId == null
-                                      ? 'Çalışan Ekle'
-                                      : 'Kaydet',
-                                  style: const TextStyle(
-                                    color: Colors.white,
-                                    fontSize: 16,
-                                    fontWeight: FontWeight.w600,
-                                  ),
-                                ),
-                              ],
-                            ),
-                    ),
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
   }
 }
 

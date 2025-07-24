@@ -11,6 +11,7 @@ const requestLogger = require("./middleware/requestLogger");
 const QdrantClient = require("./config/qdrant");
 
 const aiRoutes = require("./routes/aiRoutes");
+const { autoLoadEmployeeData } = require("./controllers/aiController");
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -37,6 +38,11 @@ const initializeQdrant = async () => {
 };
 
 initializeQdrant();
+
+// Otomatik veri yükleme
+setTimeout(async () => {
+    await autoLoadEmployeeData();
+}, 5000); // 5 saniye bekle, Qdrant'ın hazır olması için
 
 app.use(cors());
 app.use(bodyParser.json());

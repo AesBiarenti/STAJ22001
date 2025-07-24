@@ -45,8 +45,9 @@ services:
       - HOST=0.0.0.0
       - QDRANT_URL=http://qdrant:6333
       - QDRANT_COLLECTION=mesai
-      - AI_SERVICE_URL=http://ollama:11434
-      - AI_SERVICE_MODEL=llama2:7b
+      - AI_SERVICE_URL=http://192.168.2.191:11434
+      - AI_SERVICE_MODEL=llama3
+      - AI_CHAT_MODEL=llama3
       - CORS_ORIGINS=http://localhost:3000,http://localhost:8080,http://127.0.0.1:8080,http://192.168.2.191:3000
     volumes:
       - ./logs:/app/logs

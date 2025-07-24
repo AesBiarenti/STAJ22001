@@ -40,13 +40,10 @@ class QdrantClient {
                         console.log(
                             `⚠️ Koleksiyon vector boyutu uyumsuz: ${currentVectorSize} vs ${this.vectorSize}`
                         );
-                        console.log("🔄 Koleksiyon yeniden oluşturuluyor...");
-
-                        // Mevcut koleksiyonu sil
-                        await this.client.delete(
-                            `/collections/${this.collectionName}`
+                        console.log(
+                            "❌ Otomatik silme yapılmadı! Lütfen koleksiyonu manuel olarak silin ve tekrar başlatın."
                         );
-                        console.log("🗑️ Eski koleksiyon silindi");
+                        return false;
                     } else {
                         console.log(
                             "ℹ️ Qdrant koleksiyonu zaten mevcut:",

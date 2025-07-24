@@ -53,9 +53,13 @@
                             <i class="fas fa-history"></i>
                             Geçmiş
                         </button>
-                        <button class="tab-btn" :class="{ active: activeTab === 'vectors' }" @click="switchTab('vectors')">
+                        <!-- <button class="tab-btn" :class="{ active: activeTab === 'vectors' }" @click="switchTab('vectors')">
                             <i class="fas fa-database"></i>
                             Vektörler
+                        </button> -->
+                        <button class="tab-btn" :class="{ active: activeTab === 'employees' }" @click="switchTab('employees')">
+                            <i class="fas fa-users"></i>
+                            Çalışan Verileri
                         </button>
                     </div>
                     <div class="tab-content">
@@ -85,39 +89,44 @@
                         </div>
                             </div>
                         </div>
-                        <!-- Vektörler Tab -->
-                        <div class="tab-pane" :class="{ active: activeTab === 'vectors' }" id="vectors-tab">
-                            <div class="vector-database">
-                                <h3>Vektör Veritabanı</h3>
-                                <div class="vector-controls">
-                                    <button class="vector-btn" @click="loadTrainingExamples" :disabled="loadingTraining">
-                                        <i :class="loadingTraining ? 'fas fa-spinner fa-spin' : 'fas fa-graduation-cap'"></i>
-                                        {{ loadingTraining ? 'Yükleniyor...' : 'Eğitim Örnekleri' }}
-                                    </button>
-                                    <button class="vector-btn" @click="clearVectors" :disabled="clearingVectors">
-                                        <i :class="clearingVectors ? 'fas fa-spinner fa-spin' : 'fas fa-trash'"></i>
-                                        {{ clearingVectors ? 'Temizleniyor...' : 'Temizle' }}
+                        <!-- Çalışan Verileri Tab -->
+                        <div class="tab-pane" :class="{ active: activeTab === 'employees' }" id="employees-tab">
+                            <div class="employee-data">
+                                <h3>Çalışan Verileri Yönetimi</h3>
+                                <div class="file-upload-section">
+                                    <div class="upload-area" @click="triggerFileUpload" @dragover.prevent @drop="handleFileDrop">
+                                        <i class="fas fa-cloud-upload-alt"></i>
+                                        <p>Excel dosyasını seçin veya sürükleyin</p>
+                                        <small>Desteklenen formatlar: .xlsx, .xls</small>
+                                    </div>
+                                    <input type="file" ref="fileInput" @change="handleFileSelect" accept=".xlsx,.xls" style="display: none;">
+                                    <div v-if="selectedFile" class="file-selected">
+                                        <i class="fas fa-file-excel"></i>
+                                        <span>{{ selectedFile.name }} ({{ (selectedFile.size / 1024).toFixed(1) }} KB)</span>
+                                    </div>
+                                    <button class="upload-btn" @click="uploadEmployeeData" :disabled="!selectedFile || uploading">
+                                        <i :class="uploading ? 'fas fa-spinner fa-spin' : 'fas fa-upload'"></i>
+                                        {{ uploading ? 'Yükleniyor...' : 'Verileri Yükle' }}
                                     </button>
                                 </div>
-                                <div class="vector-list">
-                                    <div v-if="loadingVectors" class="loading">
-                                        <i class="fas fa-spinner fa-spin"></i>
-                                        <span>Vektörler yükleniyor...</span>
-                                    </div>
-                                    <div v-else-if="vectors.length === 0" class="loading">
-                                        <i class="fas fa-database"></i>
-                                        <span>Vektör bulunmuyor</span>
-                                    </div>
-                                    <div v-else>
-                                        <div v-for="vector in vectors" :key="vector.id" class="vector-item">
-                                            <div class="vector-meta">
-                                                <i class="fas fa-hashtag"></i>
-                                                ID: {{ vector.id }}
-                                            </div>
-                                            <div class="vector-payload">
-                                                <strong>Soru:</strong> {{ truncateText(vector.payload?.prompt || 'Soru yok', 40) }}<br>
-                                                <strong>Yanıt:</strong> {{ truncateText(vector.payload?.response || 'Yanıt yok', 40) }}
-                                            </div>
+                                <div v-if="uploadStatus" class="upload-status" :class="uploadStatus.type">
+                                    <i :class="uploadStatus.type === 'success' ? 'fas fa-check-circle' : 'fas fa-exclamation-triangle'"></i>
+                                    {{ uploadStatus.message }}
+                                </div>
+                                <div class="employee-stats" v-if="employeeStats">
+                                    <h4>Veri İstatistikleri</h4>
+                                    <div class="stats-grid">
+                                        <div class="stat-item">
+                                            <i class="fas fa-users"></i>
+                                            <span>Toplam Çalışan: {{ employeeStats.totalEmployees }}</span>
+                                        </div>
+                                        <div class="stat-item">
+                                            <i class="fas fa-calendar"></i>
+                                            <span>Kayıt Sayısı: {{ employeeStats.totalRecords }}</span>
+                                        </div>
+                                        <div class="stat-item">
+                                            <i class="fas fa-clock"></i>
+                                            <span>Ortalama Mesai: {{ employeeStats.avgWorkHours }} saat</span>
                     </div>
                 </div>
             </div>
@@ -135,12 +144,6 @@
                     <option>detaylı ve anlaşılır</option>
                     <option>teknik</option>
                     <option>sade</option>
-                </select>
-                <select v-model="selectedFormat">
-                    <option value="zengin">Zengin</option>
-                    <option value="madde">Madde Madde</option>
-                    <option value="tablo">Tablo</option>
-                    <option value="kod">Kod</option>
                 </select>
                 <select v-model="selectedLength">
                     <option value="detaylı">Detaylı</option>
@@ -172,13 +175,7 @@
                         <div v-if="message.meta.selfCheck && message.meta.selfCheck !== 'Otomatik değerlendirme yapılamadı.'" class="self-check">
                             <i class="fas fa-check-circle"></i> {{ message.meta.selfCheck }}
                     </div>
-                        <div class="feedback-buttons" v-if="message.meta.logId && !message.meta.feedbackGiven">
-                            <button @click="sendFeedback('like', message.meta.logId, index)"><i class="fas fa-thumbs-up"></i></button>
-                            <button @click="sendFeedback('dislike', message.meta.logId, index)"><i class="fas fa-thumbs-down"></i></button>
-                        </div>
-                        <div v-else-if="message.meta.feedbackGiven" class="feedback-thankyou">
-                            <i class="fas fa-heart"></i> Teşekkürler!
-                    </div>
+                        <!-- Beğen/beğenme butonları kaldırıldı -->
                     </template>
                 </div>
             </div>

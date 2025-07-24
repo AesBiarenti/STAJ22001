@@ -33,20 +33,26 @@ class QdrantService:
             return False
     
     def list_employees(self) -> List[Dict[str, Any]]:
-        """Tüm çalışanları listele"""
+        """Tüm çalışanları (sayfalama ile) listele"""
         try:
-            points = self.client.scroll(
+            all_points = []
+            offset = None
+            while True:
+                result, next_offset = self.client.scroll(
                 collection_name=self.collection_name,
-                limit=100,
-                with_payload=True
-            )[0]
-            
+                    with_payload=True,
+                    offset=offset
+                )
+                all_points.extend(result)
+                if not next_offset:
+                    break
+                offset = next_offset
             return [
                 {
                     "id": point.id,
                     **point.payload
                 }
-                for point in points
+                for point in all_points
             ]
         except Exception as e:
             logger.error(f"list_employees error: {e}")
@@ -101,6 +107,16 @@ class QdrantService:
             logger.error(f"delete_employee error: {e}")
             raise Exception(f"Çalışan silinemedi: {e}")
     
+    def delete_all_employees(self):
+        """Koleksiyondaki tüm çalışanları sil (koleksiyon sıfırla)"""
+        try:
+            self.client.delete_collection(self.collection_name)
+            logger.info(f"Collection '{self.collection_name}' tamamen silindi. Tekrar oluşturuluyor...")
+            self.create_collection()
+        except Exception as e:
+            logger.error(f"delete_all_employees error: {e}")
+            raise Exception(f"Tüm çalışanlar silinemedi: {e}")
+    
     def search_by_embedding(self, embedding: List[float], query: str) -> List[Dict[str, Any]]:
         """Semantic search"""
         try:
@@ -138,7 +154,7 @@ class QdrantService:
                 if emp.get('isim', '').lower().find(query_lower) != -1
             ]
             
-            return filtered if filtered else all_employees
+            return filtered[:20] if filtered else all_employees[:20]
         except Exception as e:
             logger.error(f"text_based_search error: {e}")
             return []
