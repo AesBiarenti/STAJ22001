@@ -56,3 +56,16 @@ jspm_packages/
 .Trashes
 ehthumbs.db
 Thumbs.db
+
+# Hassas ve kişisel dosyalar
+env.production
+env.example
+employees.json
+mesai_tablosu_40_kisi.xlsx
+mesai_tablosu_100_kisi.xlsx
+
+# Yüklenen dosyalar
+uploads/
+
+# Tüm .env dosyaları
+*.env*

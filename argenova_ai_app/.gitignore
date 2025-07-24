@@ -43,3 +43,19 @@ app.*.map.json
 /android/app/debug
 /android/app/profile
 /android/app/release
+
+# Hassas veya büyük veri dosyaları
+veli_embedding.json
+
+# Çıktı dosyaları
+*.embeddings
+*.sqlite
+*.db
+
+# Kendi oluşturduğunuz büyük veri dosyaları
+*.csv
+*.xlsx
+*.json
+
+# Kendi eklediğin özel dosya/klasörler
+scripts/

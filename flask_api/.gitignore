@@ -1,0 +1,35 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+
+# Virtual environment
+venv/
+ENV/
+env/
+.venv/
+
+# Logs
+logs/
+*.log
+
+# Environment variables
+.env
+env.example
+
+# Database
+*.db
+*.sqlite3
+
+# Personal or sensitive data
+employees.json
+
+# Docker
+*.pid
+
+# VSCode/IDE
+.vscode/
+.idea/
+*.swp
+*.swo 
