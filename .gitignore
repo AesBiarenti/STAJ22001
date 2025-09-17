@@ -1,14 +1,54 @@
-# Genel metin ve dokümantasyon dosyalarını yok say
-*.txt
-*.md
+# Rapor ve dokümantasyon (repo dışı tutulacak)
+PROJE_ANALIZ_RAPORU.md
+CALISTIRMA-SECENEKLERI.md
+LLM-Karsilastirma.md
+README-guncellemeler.md
+README-ozet.md
+README-nginx-remote.md
+KULLANIM_SENARYOLARI.md
+Kullanım Senaryoları.md
+Kullanım Senaryoları.txt
+Kullanım Senaryoları.pdf
+Kullanım Senaryoları.docx
+Kullanım Senaryoları.doc
+Kullanım Senaryoları.txt
+**/PROJE_ANALIZ_RAPORU.md
+**/RAPOR*.md
+**/*rapor*.md
+**/docs_private/**
 
-# Önemli doküman istisnaları (takipte kalsın)
-!README.md
-!README*.md
-!**/README.md
-!**/README*.md
-!**/CALISTIRMA-SECENEKLERI.md
-!**/LLM-Karsilastirma.md
-!**/README-guncellemeler.md
-!**/README-ozet.md
-!**/README-nginx-remote.md
+# Office dosyaları (örnekler hariç)
+*.xlsx
+*.xls
+*.csv
+!chat_llm_web_app/example-data.csv
+!chat_llm_web_app/example-data.xlsx
+!chat_llm_web_app/mesai_tablosu_40_kisi.xlsx
+!argenova-mobile-app/mesai_tablosu_40_kisi.xlsx
+
+# IDE/OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# Node/Flutter/Python genel
+node_modules/
+.dart_tool/
+build/
+.pub-cache/
+__pycache__/
+venv/
+.env
+
+# Loglar ve geçici dosyalar
+logs/
+*.log
+*.tmp
+*.bak
+*.backup 
+# Kullanım senaryoları dokümanları
+**/KULLANIM_SENARYOLARI.*
+**/KULLANIM SENARYOLARI.*
+**/Kullanım Senaryoları.*
+**/*kullanim*senaryo*.* 
