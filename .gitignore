@@ -1,0 +1,14 @@
+# Genel metin ve dokümantasyon dosyalarını yok say
+*.txt
+*.md
+
+# Önemli doküman istisnaları (takipte kalsın)
+!README.md
+!README*.md
+!**/README.md
+!**/README*.md
+!**/CALISTIRMA-SECENEKLERI.md
+!**/LLM-Karsilastirma.md
+!**/README-guncellemeler.md
+!**/README-ozet.md
+!**/README-nginx-remote.md
