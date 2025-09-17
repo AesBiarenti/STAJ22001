@@ -30,7 +30,51 @@ Bu depo üç ayrı projeyi içerir:
 
 ---
 
-## Ayrıntılı Bilgi ve Uç Noktalar
+## 2) argenova_ai_app (Flutter)
+
+-   Amaç: Mobil/masaüstü/web istemcisi; AI sohbeti, oturumlar ve Qdrant ile entegrasyon.
+-   Teknolojiler: Flutter, Dart
+-   Önemli dosya/dizinler:
+    -   `lib/` (özellikle `core/api/`, `features/`)
+    -   `pubspec.yaml`
+
+### Geliştirme
+
+-   Flutter sürümü kurulu olmalı (Flutter SDK)
+-   Bağımlılıklar: `flutter pub get`
+-   Çalıştırma:
+    -   Mobil: `flutter run`
+    -   Web: `flutter run -d chrome`
+    -   Masaüstü (Linux/Mac/Windows destekli kurulumlarda): `flutter run -d linux|macos|windows`
+
+---
+
+## 3) flask_api (Python/Flask)
+
+-   Amaç: AI servisleri ve Qdrant ile etkileşen REST API.
+-   Teknolojiler: Python 3, Flask, Qdrant istemcisi, Docker-Compose
+-   Önemli dosya/dizinler:
+    -   `app.py`, `controllers/`, `services/`, `models/`, `config/`
+    -   `requirements.txt`
+    -   `docker-compose.yml`, `Dockerfile`
+
+### Geliştirme
+
+-   Sanal ortam (önerilir):
+    -   `cd flask_api`
+    -   `python3 -m venv venv && source venv/bin/activate`
+-   Bağımlılıklar: `pip install -r requirements.txt`
+-   Çalıştırma (geliştirme): `flask run` veya `python app.py`
+-   Ortam değişkenleri: `.env` (ör. Qdrant, model servis URL'leri)
+
+### Docker ile Çalıştırma
+
+-   `cd flask_api`
+-   `docker compose up -d` (veya `docker-compose up -d`)
+
+---
+
+## Ayrıntılı Bilgi
 
 ### ai-app-argenova (Node.js/Express)
 
@@ -38,28 +82,6 @@ Bu depo üç ayrı projeyi içerir:
 -   içerik: `public/`
 -   Temel middleware: `cors`, `body-parser`, istek loglama, hata yakalama
 -   Qdrant başlangıcı ve koleksiyon kurulumu otomatik yapılır.
-
-#### Endpoint'ler (prefix: `/api`)
-
--   `GET /api/health`: Servis sağlık durumu (MongoDB, Qdrant, Ollama kontrolü)
--   `POST /api/query`: Sorgu işleme (genel)
--   `POST /api/chat`: Basit sohbet
--   `POST /api/chat/stream`: Akışlı sohbet (karakter karakter)
--   `POST /api/embedding`: Metin embedding oluşturma
--   `GET /api/history`: Geçmiş sorgular
--   `POST /api/populate-vectors`: Vektör veritabanını doldurma
--   `POST /api/populate-training-examples`: Eğitim örneklerini yükleme
--   `POST /api/feedback`: Geri bildirim bırakma
--   `POST /api/mark-training`: Kayıtları eğitim verisi olarak işaretleme
--   `GET /api/training-examples`: Eğitim örnekleri listesi
--   `GET /api/models`: Ollama üzerindeki mevcut modeller + desteklenenler
--   `GET /api/models/info/:modelName`: Model hakkında bilgi
--   `GET /api/vectors/status`: Qdrant koleksiyon durumu
--   `GET /api/vectors/list`: Vektörleri listele (limit: 100)
--   `DELETE /api/vectors/clear`: Koleksiyonu temizle
--   `POST /api/upload-employees` (multipart `file`): Excel'den çalışan yükleme
--   `GET /api/employee-stats`: Çalışan istatistikleri
--   `POST /api/chat-employees`: Çalışan verileri ile sohbet
 
 #### Ortam Değişkenleri
 
@@ -80,52 +102,11 @@ Bu depo üç ayrı projeyi içerir:
 
 ---
 
-## 2) argenova_ai_app (Flutter)
-
--   Amaç: Mobil/masaüstü/web istemcisi; AI sohbeti, oturumlar ve Qdrant ile entegrasyon.
--   Teknolojiler: Flutter, Dart
--   Önemli dosya/dizinler:
-    -   `lib/` (özellikle `core/api/`, `features/`)
-    -   `pubspec.yaml`
-
-### Geliştirme
-
--   Flutter sürümü kurulu olmalı (Flutter SDK)
--   Bağımlılıklar: `flutter pub get`
--   Çalıştırma:
-    -   Mobil: `flutter run`
-    -   Web: `flutter run -d chrome`
-    -   Masaüstü (Linux/Mac/Windows destekli kurulumlarda): `flutter run -d linux|macos|windows`
-
----
-
 ### flask_api (Python/Flask)
 
 -   Uygulama fabrikası: `create_app()`
 -   Sağlık kontrolü: `GET /health`
 -   Blueprint prefix'i: `/api`
-
-#### Chat ve Embedding Endpoint'leri
-
--   `POST /api/chat`
-    -   Body: `{ "question": "..." }`
-    -   Dönüş: `{ "answer": string, "success": bool }`
--   `POST /api/chat/context`
-    -   Body: `{ "embedding": number[], "query": string }`
-    -   Dönüş: `{ "context": [...], "success": bool }` (hata durumunda tüm veriler gelebilir)
--   `POST /api/embedding`
-    -   Body: `{ "text": "..." }`
-    -   Dönüş: `{ "embedding": number[384], "success": bool }` (fallback üretimi olabilir)
-
-#### Çalışan Yönetimi Endpoint'leri
-
--   `GET /api/employees`: Tüm çalışanlar
--   `POST /api/employees`: Çalışan ekle (isim üzerinden embedding oluşturur)
--   `PUT /api/employees/<id>`: Çalışan güncelle (kısmi güncelleme)
--   `DELETE /api/employees/<id>`: Çalışan sil
--   `DELETE /api/employees/all`: Tüm çalışanları sil
--   `POST /api/upload-employees` (Excel `file`): Toplu çalışan yükle
-    -   Yükleme sırasında mevcut koleksiyon ve `employees.json` temizlenir
 
 #### Ortam Değişkenleri (config/settings.py)
 
@@ -160,13 +141,6 @@ Bu depo üç ayrı projeyi içerir:
 -   `API_BASE_URL` (varsayılan: `http://192.168.2.191:5000/api`)
 -   `QDRANT_URL` (varsayılan: `http://192.168.2.191:6333`)
 -   `timeoutSeconds` (30), `retryAttempts` (3)
-
-#### İstemci API Kullanımı (ollama_service.dart)
-
--   `GET /employees` ile API erişilebilirlik kontrolü
--   `POST /chat` ile cevap üretimi
--   `POST /embedding` ile embedding
--   `streamGenerateAnswer(...)` ile akışlı yanıt simülasyonu
 
 #### Çalıştırma Örnekleri
 
