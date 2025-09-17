@@ -33,3 +33,7 @@ employees.json
 .idea/
 *.swp
 *.swo 
+
+# Metin ve dokümantasyon dosyaları
+*.txt
+*.md 

@@ -69,3 +69,7 @@ uploads/
 
 # Tüm .env dosyaları
 *.env*
+
+# Metin ve dokümantasyon dosyaları
+*.txt
+*.md

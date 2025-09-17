@@ -7,7 +7,7 @@ services:
       dockerfile: Dockerfile.dev
     container_name: ai-app-backend-dev
     ports:
-      - "3000:3000"
+      - "3002:3000"
     environment:
       - NODE_ENV=development
       - MONGODB_URI=mongodb://mongodb:27017/ai_logs
@@ -43,7 +43,7 @@ services:
     image: mongo:latest
     container_name: ai-app-mongodb-dev
     ports:
-      - "27018:27017"
+      - "27019:27017"
     volumes:
       - mongodb_data_dev:/data/db
     environment:
