@@ -73,7 +73,3 @@ uploads/
 # Metin ve dokümantasyon dosyaları
 *.txt
 *.md
-# İstisnalar: önemli dokümantasyonları takipte tut
-!README*.md
-!CALISTIRMA-SECENEKLERI.md
-!LLM-Karsilastirma.md

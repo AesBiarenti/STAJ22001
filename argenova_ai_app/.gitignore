@@ -60,3 +60,7 @@ veli_embedding.json
 # Kendi eklediğin özel dosya/klasörler
 scripts/
 
+# Metin ve dokümantasyon dosyaları
+*.txt
+*.md
+
