@@ -6,6 +6,7 @@ Bu depo üç ayrı projeyi içerir:
 2. argenova_ai_app (Flutter - çok platformlu istemci)
 3. flask_api (Python/Flask - API ve Qdrant entegrasyonu)
 
+Bu uygulamalar, staj süresü boyunca geliştirdiğim mobil ve web uygulamalarının ilk versiyonlarıdır, bu yüzden uygulamanın llm cevap kalitesi, yeni versiyonları kadar iyi değildir. STAJ22002 reposunda yeni versiyonları mevcuttur
 ---
 
 ## 1) ai-app-argenova (Vuejs/Node.js/Express)
