@@ -60,9 +60,6 @@ Bu depo üç ayrı projeyi içerir:
 
 ### Geliştirme
 
--   Sanal ortam (önerilir):
-    -   `cd flask_api`
-    -   `python3 -m venv venv && source venv/bin/activate`
 -   Bağımlılıklar: `pip install -r requirements.txt`
 -   Çalıştırma (geliştirme): `flask run` veya `python app.py`
 -   Ortam değişkenleri: `.env` (ör. Qdrant, model servis URL'leri)
