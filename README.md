@@ -1,6 +1,6 @@
-# STAJ22001 - Proje Özeti
+# STAJ22001 - Proje Özeti 
 
-Bu depo üç ayrı projeyi içerir:
+Bu depo üç ayrı projeyi içeriyor:
 
 1. ai-app-argenova (Vuejs/Node.js/Express - AI servis entegrasyonları ve web)
 2. argenova_ai_app (Flutter - çok platformlu istemci)
