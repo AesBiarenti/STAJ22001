@@ -54,7 +54,7 @@ Bu uygulamalar, staj süresi boyunca geliştirdiğim mobil ve web uygulamaların
 
 -   Amaç: AI servisleri ve Qdrant ile etkileşen REST API.
 -   Teknolojiler: Python 3, Flask, Qdrant istemcisi, Docker-Compose
--   Önemli dosya/dizinler:
+-   Önemli olan dosya/dizinler:
     -   `app.py`, `controllers/`, `services/`, `models/`, `config/`
     -   `requirements.txt`
     -   `docker-compose.yml`, `Dockerfile`
