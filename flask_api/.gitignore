@@ -22,7 +22,7 @@ env.example
 *.db
 *.sqlite3
 
-# Personal or sensitive data
+# Personal or sensitive datas
 employees.json
 
 # Docker
